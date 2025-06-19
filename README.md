@@ -1,5 +1,5 @@
 # Simulacrum Core - Plugin de Magia por IA
-# https://blob.firecast.com.br/blobs/TNGGWTUK_3896183/glitched-image.gif
+![alt text](https://blob.firecast.com.br/blobs/TNGGWTUK_3896183/glitched-image.gif)
 
 Bem-vindo ao **Simulacrum Core**, o coração do sistema de magia para o cenário de RPG de Realidade Aumentada `Simulacrum`. Este plugin para o **RRPG Firecast** transforma a maneira como os jogadores interagem com a magia, substituindo listas de feitiços por uma interface direta com uma IA onipresente chamada **"Friend"**.
 
