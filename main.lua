@@ -29,6 +29,22 @@ impersonation = {
 }
 }
 
+local geminiparams = {
+    impersonation = {
+    mode = "character",
+    avatar = "https://blob.firecast.com.br/blobs/DNGTVLGU_3898181/6853782070044e5401b50d5c.jpg",
+    gender = "masculine",
+    name = "[§B][§K1]Gemini",
+},talemarkOptions = {
+    defaultTextStyle = {
+        color = 1,
+        bold = true
+    },
+    parseSmileys = false,
+    
+}
+}
+
 
 local function startsWith(String, Start)
     return string.sub(String, 1, string.len(Start)) == Start
@@ -55,6 +71,40 @@ local function getPlayerFromChat(mensagem)
     return nil; -- Jogador não encontrado
 end
 
+local function gemini(prompt, chat)
+    local url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" .. GEMINI_API_KEY;
+    local request = Internet.newHTTPRequest();
+    local encodedPrompt = Internet.httpEncode(prompt);
+    local payload = { contents = { { parts = { { text = encodedPrompt } } } } }
+    request.onResponse =
+        function()
+            Log.i("SimulacrumCore", "Resposta recebida do Gemini.");
+            local responseJson = request.responseText;
+            Log.i("SimulacrumCore", "Resposta do Gemini: " .. responseJson);
+            local sucess, resposta = pcall(Json.decode, responseJson);
+            if not sucess then
+                chat:asyncSendStd(" Erro ao processar resposta do Gemini: " .. responseJson, geminiparams);
+                Log.e("SimulacrumCore", "Erro ao processar resposta do Gemini: " .. responseJson);
+                return;
+            end
+            if resposta.candidates[1].content.parts[1].text then
+                local yes = resposta.candidates[1].content.parts[1].text;
+                local decodedYes = Internet.httpDecode(yes);
+                if chat.room.me.isMestre then
+                    chat:asyncSendStd( decodedYes , geminiparams);
+                else
+                    chat:asyncSendStd(" Resposta do Gemini: " .. decodedYes);
+                end
+            else
+                chat:asyncSendStd(" Resposta inválida do Gemini. Esperava um objeto JSON.", sendparams);
+                Log.e("SimulacrumCore", "Resposta inválida do Gemini: " .. responseJson);
+            end
+        end;
+    request:open("POST", url);
+    request:setRequestHeader("Content-Type", "application/json");
+    request:send(Json.encode(payload));
+end
+
 
 local function aiCasting(contextoJogador)
     local url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" .. GEMINI_API_KEY;
@@ -65,7 +115,7 @@ local function aiCasting(contextoJogador)
 
             O JSON de resposta deve ter a seguinte estrutura:
             {
-              "nome": "Um nome curto e criativo para a habilidade. Ex: 'Escudo Cinético', 'Lâmina Espectral'.",
+              "nome": "Um nome curto e criativo para a habilidade. Ex: 'Escudo Cinético(7 tokens)', 'Lâmina Espectral(10 tokens)'.",
               "custo": "Um número inteiro representando a energia gasta pelo jogador para executar o efeito. Ex: 30, 50, 100.",
               "descricao": "Uma descrição narrativa e vívida do que acontece. A intensidade do efeito DEVE ser proporcional à energia gasta e à complexidade (tokens) do prompt, dentro dos limites do jogador."
             }
@@ -83,8 +133,9 @@ local function aiCasting(contextoJogador)
             2. O jogador está gastando ]] ..
         contextoJogador.tokensUsados .. [[ tokens de um limite de ]] .. contextoJogador.maxTokens .. [[.
             3. A energia gasta de ]] .. contextoJogador.energiaGasta .. [[ é o "combustível".
-            4. Descreva um efeito ('descricao') cuja escala e poder sejam CONSISTENTES com a energia gasta e a complexidade do prompt. Se a energia for baixa para um prompt ambicioso, descreva um efeito fraco ou uma falha parcial.
-            5. Crie um 'nome' adequado para a ação.
+            4. Descreva um efeito ('descricao') cuja escala e poder sejam CONSISTENTES com o nivel de poder do personagem e a energia gasta. Deve ser principalmente algo que o personagem conseguiria fazer com aquela quantidade de energia , mas com um toque de criatividade, prefira dar focos a bonus ou efeitos quantificados.
+            5. Crie um 'nome' adequado para cada ação.
+            6. Para o efeito, leve em conta principalmente a capacidade de tokens do jogador, e não tanto a quantidade que ele usou no prompt. O jogador pode usar mais de um prompt, mas o efeito deve ser coerente com a energia gasta.
 
             Regras da Mesa: ]].. rules ..[[
 
@@ -110,7 +161,6 @@ local function aiCasting(contextoJogador)
 
             Agora, analise o prompt do jogador e forneça a resposta JSON correspondente.
         ]]
-    Log.i("SimulacrumCore", "Prompt completo enviado para Gemini: " .. fullPrompt);
     local request = Internet.newHTTPRequest();
     local payload = { contents = { { parts = { { text = fullPrompt } } } } }
     request.onResponse =
@@ -164,7 +214,7 @@ local function aiMultiCasting(contextoJogador)
 
             O JSON de resposta deve ter a seguinte estrutura:
             {
-              "nome": "Um nome curto e criativo para a habilidade. Ex: 'Escudo Cinético', 'Lâmina Espectral'.",
+              "nome": "Um nome curto e criativo para a habilidade. Ex: 'Escudo Cinético(7 tokens)', 'Lâmina Espectral(10 tokens)'.",
               "custo": "Um número inteiro representando a energia gasta pelo jogador para executar o efeito. Ex: 30, 50, 100.",
               "descricao": "Uma descrição narrativa e vívida do que acontece. A intensidade do efeito DEVE ser proporcional à energia gasta e à complexidade (tokens) do prompt, dentro dos limites do jogador."
             }
@@ -180,8 +230,9 @@ local function aiMultiCasting(contextoJogador)
             1. Analise os prompts do jogador: "]] .. contextoJogador.promptJogador .. [["
             2. Calcule a quantia de tokens por prompt de um limite de ]] .. contextoJogador.maxTokens .. [[.
             3. A energia gasta de ]] .. contextoJogador.energiaGasta .. [[ por prompt é o "combustível".
-            4. Descreva um efeito ('descricao') cuja escala e poder sejam CONSISTENTES com a energia gasta e a complexidade de cada prompt. Se a energia for baixa para um prompt ambicioso, descreva um efeito fraco ou uma falha parcial.
+            4. Descreva um efeito ('descricao') cuja escala e poder sejam CONSISTENTES com o nivel de poder do personagem e a energia gasta. Deve ser principalmente algo que o personagem conseguiria fazer com aquela quantidade de energia , mas com um toque de criatividade, prefira dar focos a bonus ou efeitos quantificados.
             5. Crie um 'nome' adequado para cada ação.
+            6. Para o efeito, leve em conta principalmente a capacidade de tokens do jogador, e não tanto a quantidade que ele usou no prompt. O jogador pode usar mais de um prompt, mas o efeito deve ser coerente com a energia gasta.
 
             Regras da Mesa: ]].. rules ..[[
 
@@ -312,12 +363,12 @@ Firecast.Messaging.listen("ChatMessageEx",
             Log.i("SimulacrumCore", "ChatMessageEx received: " .. content);
             if (startsWith(content, "Friend:")) then
                 local promptEnergia = content:sub(8):match("^%s*(.-)%s*$") -- Remove "Friend:" prefix e espaços
-                local prompt, energiaStr = promptEnergia:match("^(.-)%s*%((%d+)%s*%)%s*$")
-                if not prompt or not energiaStr then
+                local prompt, energiaStr = promptEnergia:match("^(.-)%s*%((.-)%)%s*$")
+                if not prompt or not energiaStr or energiaStr == "" then
                     message.chat:asyncSendStd(" Formato inválido. Use: Friend: <prompt> (<energia>)", sendparams);
                     return;
                 end
-                local energiaGasta = tonumber(energiaStr)
+                local energiaGasta = energiaStr;
                 if not energiaGasta then
                     message.chat:asyncSendStd(" Energia inválida.", sendparams);
                     return;
@@ -373,6 +424,10 @@ Firecast.Messaging.listen("ChatMessageEx",
                     message.chat:asyncSendStd(" Chave Gemini inválida. Use: geminiKey <sua_chave>", sendparams);
                     Log.e("SimulacrumCore", "Chave Gemini inválida recebida.");
                 end
+            end
+            if(startsWith(content, "gemini ")) then
+                local prompt = content:sub(8):match("^%s*(.-)%s*$") -- Remove "gemini " prefix
+                gemini(prompt, message.chat);
             end
         end
     end
