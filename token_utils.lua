@@ -17,7 +17,7 @@ function rUtils.rolarRankParaTokens(tokens)
     if tokens <= 1 then
         return RANKS[1].name
     end
-    local weights = {
+    local weightsl = {
         1,
         2,
         4,
@@ -29,6 +29,12 @@ function rUtils.rolarRankParaTokens(tokens)
         256,
         512
     }
+    local weights = {};
+    for i = 1, #weightsl do
+        if(tokens >= weightsl[i]) then
+            weights[i] = weightsl[i];
+        end;
+    end
     for i = #weights, 1, -1 do
         weights[i] = weights[i] - tokens/10
         if weights[i] < 1 then

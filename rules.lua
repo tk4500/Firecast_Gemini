@@ -35,7 +35,7 @@ Habilidades são categorizadas em diferentes niveis:
 ● [[[[Universal]\]\]\] (10.000PH)(256 Tokens)
 ● (Multi-Versal) (50.000PH)(512 Tokens)
 
-Cada nível de habilidade tem um custo 10x maior em pontos de habilidade para subir comparado ao anterior. Habilidades de níveis maiores não são apenas mais potentes, como também mais eficientes.
+Cada nível de habilidade tem um custo variando entre 5x e 2x maior em pontos de habilidade para subir comparado ao anterior. Habilidades de níveis maiores não são apenas mais potentes, como também mais eficientes.
 
 A estrutura basica de uma habilidade se da seguinte forma:
 | Nome: Nome da skill, dependendo de como for apresentado, indica o nível dela.

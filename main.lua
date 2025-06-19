@@ -378,6 +378,46 @@ local function splitContext(contextoJogador)
     aiMultiCasting(contextoJogador);
 end
 
+local function friendResponse(prompt, chat)
+    local url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" .. GEMINI_API_KEY;
+    local request = Internet.newHTTPRequest();
+    local completePrompt = [[Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG de Realidade Aumentada 'Simulacrum'. Sua função é analisar um 'prompt' de um jogador e gerar uma resposta narrativa e mecânica coerente, balanceada e dentro das regras do sistema
+    aqui estão as regras do sistema: ]] .. rules .. [[
+    você deve responder a duvida do jogador de forma clara e objetiva, sem rodeios ou informações desnecessárias.
+    prompt do jogador: ]] .. prompt .. [[
+    end
+    ]]
+    local encodedPrompt = Internet.httpEncode(completePrompt);
+    local payload = { contents = { { parts = { { text = encodedPrompt } } } } }
+    request.onResponse =
+        function()
+            Log.i("SimulacrumCore", "Resposta recebida do Friend.");
+            local responseJson = request.responseText;
+            Log.i("SimulacrumCore", "Resposta do Friend: " .. responseJson);
+            local sucess, resposta = pcall(Json.decode, responseJson);
+            if not sucess then
+                chat:asyncSendStd(" Erro ao processar resposta do Friend: " .. responseJson, sendparams);
+                Log.e("SimulacrumCore", "Erro ao processar resposta do Friend: " .. responseJson);
+                return;
+            end
+            if resposta.candidates[1].content.parts[1].text then
+                local yes = resposta.candidates[1].content.parts[1].text;
+                local decodedYes = Internet.httpDecode(yes);
+                if chat.room.me.isMestre then
+                    chat:asyncSendStd( decodedYes , sendparams);
+                else
+                    chat:asyncSendStd(" Resposta do Friend: " .. decodedYes);
+                end
+            else
+                chat:asyncSendStd(" Resposta inválida do Friend. Esperava um objeto JSON.");
+                Log.e("SimulacrumCore", "Resposta inválida do Friend: " .. responseJson);
+            end
+        end;
+    request:open("POST", url);
+    request:setRequestHeader("Content-Type", "application/json");
+    request:send(Json.encode(payload));
+end
+
 
 Firecast.Messaging.listen("ChatMessageEx",
     function(message)
@@ -440,6 +480,11 @@ Firecast.Messaging.listen("ChatMessageEx",
                     return;
                 end
                 aiCasting(contextoJogador);
+            end
+            if(startsWith(content, "Friend ")) then
+                local prompt = content:sub(8):match("^%s*(.-)%s*$") -- Remove "Friend " prefix
+                friendResponse(prompt, message.chat);
+
             end
             if(startsWith(content, "geminiKey ") and message.mine) then
                 local key = content:sub(10):match("^%s*(.-)%s*$") -- Remove "geminiKey " prefix
