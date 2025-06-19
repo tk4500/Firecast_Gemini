@@ -494,6 +494,17 @@ Habilidade Racial:
 | Custo/Limitação: Passiva
 | Descrição: Quando você acerta um alvo com seu Ataque Básico, o alvo deve fazer um teste (Dificuldade = Modificador de Vida) ou será empurrado 2 metros para trás.
 
+- Etéreo -
+Diferente das outras raças que emulam uma estrutura física, o Etéreo é um "firmware" experimental, um avatar composto quase inteiramente por dados e energia puros, contidos por um campo de força com uma forma humanoide. Eles são seres de informação, e sua existência é mais um fluxo de energia do que um corpo sólido. Por isso, ataques contra eles desestabilizam esse campo de energia antes de atingir seu núcleo vital.
+Modificadores:
+Modificador de Vida: +1 por nível
+Modificador de Energia: +8 por nível
+Dano Base: 1
+Habilidade Racial:
+| Nome: Corpo Etéreo
+| Custo/Limitação: Passiva
+| Descrição: Todo dano que você receberia em sua Vida é, em vez disso, subtraído da sua Energia. Se o dano recebido for maior que sua Energia atual, o dano restante é aplicado à sua Vida. Este efeito só funciona enquanto você tiver 1 ou mais pontos de Energia.
+
 - Combate -
 1. Iniciativa:
 No início de um combate, todos os participantes (jogadores e inimigos) rolam para determinar a ordem de ação. Como não há atributos de Agilidade ou Destreza, a Iniciativa é uma medida da velocidade de processamento e dos reflexos otimizados da sua classe.

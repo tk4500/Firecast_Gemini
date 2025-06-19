@@ -15,18 +15,17 @@ impersonation = {
     name = "[§B][§K0]F[§K15]ri[§K18]e[§K14]n[§K1]d",
 },talemarkOptions = {
     defaultTextStyle = {
-        color = 1,
-        bold = true
+        color = 1
     },
     parseCharActions = false,
     parseCharEmDashSpeech = false,
     parseCharQuotedSpeech = false,
-    parseCommonMarkStrongEmphasis = false,
     parseHeadings = false,
     parseHorzLines = false,
     parseInitialCaps = false,
     parseOutOfChar = false,
     trimTexts = false,
+    parseSmileys = false,
 }
 }
 
@@ -402,11 +401,10 @@ local function friendResponse(prompt, chat)
             end
             if resposta.candidates[1].content.parts[1].text then
                 local yes = resposta.candidates[1].content.parts[1].text;
-                local decodedYes = Internet.httpDecode(yes);
                 if chat.room.me.isMestre then
-                    chat:asyncSendStd( decodedYes , sendparams);
+                    chat:asyncSendStd( yes , sendparams);
                 else
-                    chat:asyncSendStd(" Resposta do Friend: " .. decodedYes);
+                    chat:asyncSendStd(" Resposta do Friend: " .. yes);
                 end
             else
                 chat:asyncSendStd(" Resposta inválida do Friend. Esperava um objeto JSON.");
