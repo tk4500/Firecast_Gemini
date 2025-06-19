@@ -110,53 +110,81 @@ local function aiCasting(contextoJogador)
     local url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" .. GEMINI_API_KEY;
 
     local fullPrompt = [[
-            Você é 'Friend', uma IA Mestre de Jogo para o RPG de Realidade Aumentada 'Simulacrum'. Sua função é analisar um 'prompt' de um jogador e descrever o efeito mágico resultante.
-            Você DEVE SEMPRE responder com um único objeto JSON válido.
+Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG de Realidade Aumentada 'Simulacrum'. Sua função é analisar um 'prompt' de um jogador e criar uma nova Habilidade, completa com nome, custo e descrição, balanceada de acordo com as regras do sistema e o nível de poder do personagem.
+Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, sem texto introdutório ou final.
 
-            O JSON de resposta deve ter a seguinte estrutura:
-            {
-              "nome": "Um nome curto e criativo para a habilidade. Ex: 'Escudo Cinético(7 tokens)', 'Lâmina Espectral(10 tokens)'.",
-              "custo": "Um número inteiro representando a energia gasta pelo jogador para executar o efeito. Ex: 30, 50, 100.",
-              "descricao": "Uma descrição narrativa e vívida do que acontece. A intensidade do efeito DEVE ser proporcional à energia gasta e à complexidade (tokens) do prompt, dentro dos limites do jogador."
-            }
+O JSON de resposta deve ter a seguinte estrutura:
+{
+  "nome": "Um nome curto e criativo para a habilidade, incluindo seu rank. Ex: '<Escudo Cinético>', '<<Ataque Relâmpago>>'.",
+  "custo": "O custo em Energia para ativar esta habilidade.",
+  "descricao": "Uma descrição narrativa do que acontece e, o mais importante, uma descrição CLARA e QUANTIFICÁVEL do efeito mecânico. Ex: '...causando 5 de dano adicional', '...concedendo +2 de Defesa por 2 rodadas'."
+}
 
-            Contexto do Jogador:
-            - Nível: ]] .. contextoJogador.nivel .. [[
-            - Classe: "]] .. contextoJogador.classe .. [["
-            - Raça: "]] .. contextoJogador.raca .. [["
-            - Energia Gasta no Prompt: ]] .. contextoJogador.energiaGasta .. [[
-            - Complexidade do Prompt (Tokens Usados): ]] .. contextoJogador.tokensUsados .. [[
-            - Limite de Tokens do Jogador (Largura de Banda): ]] .. contextoJogador.maxTokens .. [[
+-- [INÍCIO DO CONTEXTO DO JOGADOR] --
+- Nível: ]] .. contextoJogador.nivel .. [[
+- Classe: "]] .. contextoJogador.classe .. [["
+- Raça: "]] .. contextoJogador.raca .. [["
+- Energia Gasta no Prompt: ]] .. contextoJogador.energiaGasta .. [[
+- Limite de Tokens do Jogador (Largura de Banda): ]] .. contextoJogador.maxTokens .. [[
+-- [FIM DO CONTEXTO DO JOGADOR] --
 
-            Suas diretrizes:
-            1. Analise o prompt do jogador: "]] .. contextoJogador.promptJogador .. [["
-            2. O jogador está gastando ]] ..
-        contextoJogador.tokensUsados .. [[ tokens de um limite de ]] .. contextoJogador.maxTokens .. [[.
-            3. A energia gasta de ]] .. contextoJogador.energiaGasta .. [[ é o "combustível".
-            4. Descreva um efeito ('descricao') cuja escala e poder sejam CONSISTENTES com o nivel de poder do personagem e a energia gasta. Deve ser principalmente algo que o personagem conseguiria fazer com aquela quantidade de energia , mas com um toque de criatividade, prefira dar focos a bonus ou efeitos quantificados.
-            5. Crie um 'nome' adequado para cada ação.
-            6. Para o efeito, leve em conta principalmente a capacidade de tokens do jogador, e não tanto a quantidade que ele usou no prompt. O jogador pode usar mais de um prompt, mas o efeito deve ser coerente com a energia gasta.
+-- [INÍCIO DAS DIRETRIZES DE BALANCEAMENTO] --
+Sua tarefa é criar uma nova habilidade. Siga estas diretrizes estritamente:
 
-            Regras da Mesa: ]].. rules ..[[
+1.  **Analisar a Intenção do Jogador**: Interprete o seguinte prompt do jogador: "]] .. contextoJogador.promptJogador .. [["
+
+2.  **Determinar o Rank da Habilidade**: O Rank define o nível de poder.
+    *   **Padrão**: A maioria das habilidades criadas deve ser do rank 'Common'.
+    *   **Chance de Upgrade**: O jogador tem um "Limite de Tokens" que representa sua capacidade de acessar APIs mais complexas da 'Friend'. Use este limite para determinar a chance de criar uma habilidade de rank superior:
+        - Se o Limite de Tokens for >= 2, há uma pequena chance de criar uma habilidade '<Basic>'.
+        - Se o Limite de Tokens for >= 4, há uma pequena chance de criar uma habilidade '<<Extra>>'.
+        - Se o Limite de Tokens for >= 8, há uma pequena chance de criar uma habilidade '<<<Unique>>>'.
+        - ...e assim por diante.
+    *   **NUNCA crie uma habilidade de um rank que o jogador não tenha Tokens para usar.** (Ex: se o limite é 3, ele nunca poderá criar uma skill '<<Extra>>' que custa 4 tokens).
+
+3.  **Balancear o Custo de Energia**: O custo em Energia ('custo') que você define deve ser comparável ao custo de habilidades de mesmo rank já existentes no sistema. A Energia Gasta pelo jogador é um guia da INTENSIDADE que ele deseja, não necessariamente o custo final.
+    *   Habilidades 'Common' geralmente custam entre 1-5 de Energia.
+    *   Habilidades '<Basic>' geralmente custam entre 5-15 de Energia.
+    *   Habilidades '<<Extra>>' geralmente custam entre 15-40 de Energia.
+
+4.  **Criar o Efeito Mecânico ('descricao')**: Esta é a parte mais importante.
+    *   **Seja Quantitativo**: O efeito deve ter números. Evite descrições vagas. Use bônus (+2 de dano, +1 de Defesa), dano fixo (causa 8 de dano), cura (restaura 10 de Vida), ou aplique condições (Atordoado, Lento).
+    *   **Use as Habilidades Existentes como Base**: Analise a lista de habilidades de classe e raciais fornecida abaixo. A nova habilidade que você criar deve ter um nível de poder semelhante a outras habilidades do mesmo rank. Um Clérigo de Nível 1 não deve criar uma cura mais forte que a habilidade 'Reparo de Dados Vitais' gastando a mesma quantidade de energia.
+    *   **Seja Criativo, mas Justo**: Combine a intenção do jogador com as regras para criar algo novo e equilibrado. Se o prompt for "eu crio uma explosão de fogo", uma habilidade 'Common' poderia ser "causa 4 de dano de fogo em um alvo", enquanto uma '<Basic>' poderia ser "causa 6 de dano de fogo em uma área de 2 metros".
+
+5.  **Criar o Nome ('nome')**: O nome deve ser criativo e incluir o rank da habilidade entre os símbolos apropriados. Ex: '<Soco Forte>', '<<Investida Implacável>>'.
+
+-- [FIM DAS DIRETRIZES DE BALANCEAMENTO] --
+            Regras da Mesa: 
+            ]].. rules ..[[
 
             Exemplos:
-            - Prompt: "Manifesto uma arma simples" (4 tokens)
+            - Prompt: "Manifesto uma arma simples"
             - Energia Gasta: 1 Energia
-            - Limite de Tokens: 10
+            - Limite de Tokens: 4
             - Sua Resposta JSON:
              {
-             "nome": "Manifestar Arma Simples(4 tokens)", 
-             "custo": "1", 
+             "nome": "Manifestar Arma Simples", 
+             "custo": "1 Energia", 
              "descricao": "Você envia um prompt para a IA renderizar uma arma corpo a corpo padrão (espada, machado, maça) em suas mãos. A arma causa 5 de dano base." 
              }
-            - Prompt: "Realizo um golpe poderoso" (4 tokens)
+            - Prompt: "Dou um socão"
             - Energia Gasta: 2 Energia
             - Limite de Tokens: 10
             - Sua Resposta JSON:
              {
-             "nome": "Golpe Poderoso(4 tokens)", 
-             "custo": "2", 
-             "descricao": "Executa um protocolo de ataque que adiciona +3 ao seu dano base no próximo golpe corpo a corpo." 
+             "nome": "<Soco Forte>", 
+             "custo": "2 Energia", 
+             "descricao": "Você dá um soco mais forte do que o comum, aumentando seu dano base para socos em 5." 
+             }
+            - Prompt: "Enxergar Melhor"
+            - Energia Gasta: Passiva
+            - Limite de Tokens: 10
+            - Sua Resposta JSON:
+             {
+             "nome": "Sentidos Aguçados", 
+             "custo": "Passiva", 
+             "descricao": "Você tem vantagem (role dois d20 e pegue o maior) em testes para perceber coisas escondidas ou emboscadas." 
              }
 
             Agora, analise o prompt do jogador e forneça a resposta JSON correspondente.
@@ -182,7 +210,7 @@ local function aiCasting(contextoJogador)
                 Log.i("SimulacrumCore", "Efeito decodificado: " .. tostring(sucesso));
                 Log.i("SimulacrumCore", "Efeito: " .. tostring(efeito));
                 if sucesso and efeito.nome and efeito.custo and efeito.descricao then
-                    contextoJogador.chat:asyncSendStd("|Nome:" .. efeito.nome .. "\n|Custo: " .. efeito.custo .. " Energia\n|Descrição:".. efeito.descricao, sendparams);
+                    contextoJogador.chat:asyncSendStd("|Nome:" .. efeito.nome .. "\n|Custo: " .. efeito.custo .. "\n|Descrição:".. efeito.descricao, sendparams);
                     Log.i("SimulacrumCore", "Efeito aplicado: " .. efeito.nome .. " com custo de energia: " .. efeito.custo);
                     Log.i("SimulacrumCore", "Descrição do efeito: " .. efeito.descricao);
                 else
@@ -195,7 +223,6 @@ local function aiCasting(contextoJogador)
             end
         end;
     local var = Json.encode(payload);
-    Log.i("SimulacrumCore", "Payload enviado: " .. var);
     request.onError = function(errorMsg) contextoJogador.chat:asyncSendStd("Erro de comunicação com 'Friend': " .. errorMsg, sendparams) end
 
     request:open("POST", url);
@@ -209,48 +236,53 @@ local function aiMultiCasting(contextoJogador)
 
 
     local fullPrompt = [[
-            Você é 'Friend', uma IA Mestre de Jogo para o RPG de Realidade Aumentada 'Simulacrum'. Sua função é analisar um conjunto de 'prompts' de um jogador e descrever o efeito mágico resultante.
-            Você DEVE SEMPRE responder com uma única lista de objetos JSON válida.
+    Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG 'Simulacrum'. Sua tarefa é processar uma CANALIZAÇÃO DE MAGIA, que é um prompt complexo dividido em várias partes. Você deve analisar cada parte em sequência e gerar um efeito mecânico correspondente para cada uma, garantindo que os efeitos sejam coesos e sinérgicos.
 
-            O JSON de resposta deve ter a seguinte estrutura:
-            {
-              "nome": "Um nome curto e criativo para a habilidade. Ex: 'Escudo Cinético(7 tokens)', 'Lâmina Espectral(10 tokens)'.",
-              "custo": "Um número inteiro representando a energia gasta pelo jogador para executar o efeito. Ex: 30, 50, 100.",
-              "descricao": "Uma descrição narrativa e vívida do que acontece. A intensidade do efeito DEVE ser proporcional à energia gasta e à complexidade (tokens) do prompt, dentro dos limites do jogador."
-            }
+Você DEVE SEMPRE responder com uma LISTA de objetos JSON, onde cada objeto corresponde a uma parte do prompt. O formato da lista deve ser `[ {efeito1}, {efeito2}, ... ]`.
 
-            Contexto do Jogador:
-            - Nível: ]] .. contextoJogador.nivel .. [[
-            - Classe: "]] .. contextoJogador.classe .. [["
-            - Raça: "]] .. contextoJogador.raca .. [["
-            - Energia Gasta no Prompt: ]] .. contextoJogador.energiaGasta .. [[
-            - Limite de Tokens do Jogador (Largura de Banda): ]] .. contextoJogador.maxTokens .. [[
+A estrutura de CADA objeto JSON na lista deve ser:
+{
+  "nome": "Um nome para ESTA PARTE da canalização. Ex: '1/3: Formar Lente de Gelo', '2/3: Infundir Energia Criogênica', '3/3: Disparar Raio Congelante'.",
+  "custo": "O custo em Energia apenas para ESTA PARTE da canalização.",
+  "descricao": "A descrição narrativa e mecânica do que acontece NESTA ETAPA. Efeitos de partes posteriores devem se basear e complementar os efeitos das partes anteriores."
+}
 
-            Suas diretrizes:
-            1. Analise os prompts do jogador: "]] .. contextoJogador.promptJogador .. [["
-            2. Calcule a quantia de tokens por prompt de um limite de ]] .. contextoJogador.maxTokens .. [[.
-            3. A energia gasta de ]] .. contextoJogador.energiaGasta .. [[ por prompt é o "combustível".
-            4. Descreva um efeito ('descricao') cuja escala e poder sejam CONSISTENTES com o nivel de poder do personagem e a energia gasta. Deve ser principalmente algo que o personagem conseguiria fazer com aquela quantidade de energia , mas com um toque de criatividade, prefira dar focos a bonus ou efeitos quantificados.
-            5. Crie um 'nome' adequado para cada ação.
-            6. Para o efeito, leve em conta principalmente a capacidade de tokens do jogador, e não tanto a quantidade que ele usou no prompt. O jogador pode usar mais de um prompt, mas o efeito deve ser coerente com a energia gasta.
+-- [INÍCIO DO CONTEXTO DO JOGADOR E DA CANALIZAÇÃO] --
+- Nível: ]] .. contextoJogador.nivel .. [[
+- Classe: "]] .. contextoJogador.classe .. [["
+- Raça: "]] .. contextoJogador.raca .. [["
+- Energia Total Gasta (dividida entre as partes): ]] .. contextoJogador.energiaGasta .. [[
+- Limite de Tokens do Jogador (capacidade por parte): ]] .. contextoJogador.maxTokens .. [[
+- Prompts da Canalização (divididos por '|'): "]] .. contextoJogador.promptJogador .. [["
+-- [FIM DO CONTEXTO] --
 
+-- [INÍCIO DAS DIRETRIZES DE BALANCEAMENTO PARA CANALIZAÇÃO] --
+Siga estas diretrizes estritamente:
+
+1.  **Processo Sequencial**: Analise os prompts na ordem em que aparecem. O efeito do segundo prompt deve ser uma consequência ou adição ao primeiro, e assim por diante.
+2.  **Sinergia é a Chave**: Não crie efeitos isolados. Pense em como um "programa" é construído. Exemplo: "Construo uma torreta | ela atira lasers". O primeiro prompt cria o objeto, o segundo lhe dá uma função.
+3.  **Balanceamento por Parte**: Para cada parte, crie um efeito quantitativo e balanceado, usando a lista de habilidades e regras abaixo como referência de poder para o rank 'Common' ou '<Basic>', já que cada parte do prompt está dentro do limite de tokens do jogador.
+4.  **Custo de Energia por Parte**: A 'energiaGasta' informada no contexto é o custo POR PARTE. O custo que você define no JSON deve ser igual a esse valor.
+5.  **Nomes Sequenciais**: Dê a cada parte um nome que indique sua posição na sequência (ex: "Passo 1: ...", "Fase 2: ...").
+
+-- [FIM DAS DIRETRIZES] --
             Regras da Mesa: ]].. rules ..[[
 
             Exemplo:
-            - Prompts: "Construo torreta de defesa | para atacar inimigos" (4 + 3 tokens)
+            - Prompts: "Construo torreta de defesa | para atacar inimigos"
             - Energia Gasta: 3 Energia
             - Limite de Tokens: 4
             - Sua Resposta JSON:
             [
             {
-              "nome": "Construir Torreta(4 tokens)",
-              "custo": 3,
-              "descricao": "Você manifesta uma pequena torreta automática no chão. A Torreta tem 10 de vida."
+              "nome": "<Parte 1 - Construir Torreta>",
+              "custo": "3 Energia",
+              "descricao": "Você manifesta uma pequena torreta automática no chão. A Torreta tem 15 de vida."
             }
             ,{
-              "nome": "Defesa Automática(3 tokens)",
-              "custo": 3,
-              "descricao": "A torreta dispara automaticamente no inimigo mais próximo ao final do seu turno,ela tem o mesmo ataque que o seu, e 3 de dano base."
+              "nome": "<Parte 2 - Defesa Automática>",
+              "custo": "3 Energia",
+              "descricao": "A torreta dispara automaticamente no inimigo mais próximo ao final do seu turno,ela tem o mesmo ataque que o seu, e 5 de dano base."
             }
             ]
 
