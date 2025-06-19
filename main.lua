@@ -2,6 +2,7 @@ require("firecast.lua")
 require("internet.lua")
 require("log.lua")
 local rules = require("rules.lua")
+local rUtils = require("token_utils.lua")
 local Json = require("json.lua")
 local GEMINI_API_KEY = "";
 Log.i("SimulacrumCore", "Plugin Simulacrum Core carregado.")
@@ -120,41 +121,31 @@ O JSON de resposta deve ter a seguinte estrutura:
   "descricao": "Uma descrição narrativa do que acontece e, o mais importante, uma descrição CLARA e QUANTIFICÁVEL do efeito mecânico. Ex: '...causando 5 de dano adicional', '...concedendo +2 de Defesa por 2 rodadas'."
 }
 
--- [INÍCIO DO CONTEXTO DO JOGADOR] --
-- Nível: ]] .. contextoJogador.nivel .. [[
-- Classe: "]] .. contextoJogador.classe .. [["
-- Raça: "]] .. contextoJogador.raca .. [["
-- Energia Gasta no Prompt: ]] .. contextoJogador.energiaGasta .. [[
-- Limite de Tokens do Jogador (Largura de Banda): ]] .. contextoJogador.maxTokens .. [[
--- [FIM DO CONTEXTO DO JOGADOR] --
+-- [INÍCIO DAS INSTRUÇÕES E CONTEXTO] --
+1.  **ORDEM PRIMÁRIA**: Você DEVE criar uma habilidade do Rank ']] .. contextoJogador.rank .. [['. Este Rank foi pré-determinado e não pode ser alterado.
+2.  **Contexto do Jogador**:
+    *   Nível: ]] .. contextoJogador.nivel .. [[
+    *   Classe: "]] .. contextoJogador.classe .. [["
+    *   Raça: "]] .. contextoJogador.raca .. [["
+3.  **Intenção do Jogador (Prompt)**: "]] .. contextoJogador.promptJogador .. [["
+4.  **Custo de Energia**: O custo da habilidade ('custo') DEVE ser ]] .. contextoJogador.energiaGasta .. [[.
+-- [FIM DAS INSTRUÇÕES E CONTEXTO] --
 
--- [INÍCIO DAS DIRETRIZES DE BALANCEAMENTO] --
-Sua tarefa é criar uma nova habilidade. Siga estas diretrizes estritamente:
+-- [INÍCIO DAS DIRETRIZES DE CRIAÇÃO E BALANCEAMENTO] --
+Agora, siga estas diretrizes para criar a habilidade:
 
-1.  **Analisar a Intenção do Jogador**: Interprete o seguinte prompt do jogador: "]] .. contextoJogador.promptJogador .. [["
+-   **O Efeito Reflete o Rank e a Energia**:
+    *   A 'Energia Gasta' (]] .. contextoJogador.energiaGasta .. [[) define o PODER BRUTO do efeito (dano, cura, duração, etc.).
+    *   O 'Rank' ('']] .. contextoJogador.rank .. [[') define a COMPLEXIDADE e EFICIÊNCIA. Habilidades de rank maior são mais refinadas.
+    *   **Exemplo de como combinar os dois**:
+        - Se o Rank for 'Common' e a Energia for 10, o efeito pode ser 'causar 8 de dano de fogo'.
+        - Se o Rank for '<Basic>' e a Energia for 10, o efeito pode ser mais eficiente, como 'causar 8 de dano de fogo E aplicar a condição Corrompido por 2 rodadas'. O poder bruto (dano) é o mesmo, mas a complexidade é maior.
 
-2.  **Determinar o Rank da Habilidade**: O Rank define o nível de poder.
-    *   **Padrão**: A maioria das habilidades criadas deve ser do rank 'Common'.
-    *   **Chance de Upgrade**: O jogador tem um "Limite de Tokens" que representa sua capacidade de acessar APIs mais complexas da 'Friend'. Use este limite para determinar a chance de criar uma habilidade de rank superior:
-        - Se o Limite de Tokens for >= 2, há uma pequena chance de criar uma habilidade '<Basic>'.
-        - Se o Limite de Tokens for >= 4, há uma pequena chance de criar uma habilidade '<<Extra>>'.
-        - Se o Limite de Tokens for >= 8, há uma pequena chance de criar uma habilidade '<<<Unique>>>'.
-        - ...e assim por diante.
-    *   **NUNCA crie uma habilidade de um rank que o jogador não tenha Tokens para usar.** (Ex: se o limite é 3, ele nunca poderá criar uma skill '<<Extra>>' que custa 4 tokens).
+-   **Balanceamento com a Referência**: O efeito criado deve ser equilibrado em comparação com as habilidades de mesmo Rank e custo de energia já existentes no sistema (fornecidas abaixo). A nova habilidade não pode ser drasticamente superior a uma já existente de mesmo Rank e custo.
 
-3.  **Balancear o Custo de Energia**: O custo em Energia ('custo') que você define deve ser comparável ao custo de habilidades de mesmo rank já existentes no sistema. A Energia Gasta pelo jogador é um guia da INTENSIDADE que ele deseja, não necessariamente o custo final.
-    *   Habilidades 'Common' geralmente custam entre 1-5 de Energia.
-    *   Habilidades '<Basic>' geralmente custam entre 5-15 de Energia.
-    *   Habilidades '<<Extra>>' geralmente custam entre 15-40 de Energia.
+-   **Seja Quantitativo**: A descrição do efeito ('descricao') deve incluir números claros (ex: +3 de Defesa, restaura 15 de Vida, dura por 3 rodadas).
 
-4.  **Criar o Efeito Mecânico ('descricao')**: Esta é a parte mais importante.
-    *   **Seja Quantitativo**: O efeito deve ter números. Evite descrições vagas. Use bônus (+2 de dano, +1 de Defesa), dano fixo (causa 8 de dano), cura (restaura 10 de Vida), ou aplique condições (Atordoado, Lento).
-    *   **Use as Habilidades Existentes como Base**: Analise a lista de habilidades de classe e raciais fornecida abaixo. A nova habilidade que você criar deve ter um nível de poder semelhante a outras habilidades do mesmo rank. Um Clérigo de Nível 1 não deve criar uma cura mais forte que a habilidade 'Reparo de Dados Vitais' gastando a mesma quantidade de energia.
-    *   **Seja Criativo, mas Justo**: Combine a intenção do jogador com as regras para criar algo novo e equilibrado. Se o prompt for "eu crio uma explosão de fogo", uma habilidade 'Common' poderia ser "causa 4 de dano de fogo em um alvo", enquanto uma '<Basic>' poderia ser "causa 6 de dano de fogo em uma área de 2 metros".
-
-5.  **Criar o Nome ('nome')**: O nome deve ser criativo e incluir o rank da habilidade entre os símbolos apropriados. Ex: '<Soco Forte>', '<<Investida Implacável>>'.
-
--- [FIM DAS DIRETRIZES DE BALANCEAMENTO] --
+-- [FIM DAS DIRETRIZES] --
             Regras da Mesa: 
             ]].. rules ..[[
 
@@ -430,12 +421,16 @@ Firecast.Messaging.listen("ChatMessageEx",
                     end
                 end
 
+                local rank = rUtils.rolarRankParaTokens(tokens);
+                Log.i("Rank calculado: " .. rank);
+
                 local contextoJogador = {
                     nivel = nivel,
                     classe = classe,
                     raca = raca,
                     energiaGasta = energiaGasta,
                     tokensUsados = tokensUsados,
+                    rank = rank,
                     maxTokens = tokens,
                     promptJogador = prompt,
                     chat = message.chat
