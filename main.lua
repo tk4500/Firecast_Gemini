@@ -52,7 +52,8 @@ end
 -- Função para contar palavras (tokens) em uma string.
 local function contarTokens(str)
     local count = 0
-    for _ in string.gmatch(str, "%S+") do
+    -- Conta palavras separadas por espaço, "_" ou "-"
+    for _ in string.gmatch(str, "[^%s_%-%c]+") do
         count = count + 1
     end
     return count
@@ -333,7 +334,7 @@ end
 local function promptSplitter(prompt, maxTokens)
     local prompts = {}
     local palavras = {}
-    for palavra in prompt:gmatch("%S+") do
+    for palavra in string.gmatch(prompt, "[^%s_%-%c]+") do
         table.insert(palavras, palavra)
     end
     local currentPrompt = ""
