@@ -13,6 +13,46 @@ local RANKS = {
     {tokens = 512, name = "Multi-Versal"}
 }
 
+
+function rUtils.promptSplitter(prompt, maxTokens)
+    local prompts = {}
+    local palavras = {}
+    for palavra in string.gmatch(prompt, "[^%s_%-%c]+") do
+        table.insert(palavras, palavra)
+    end
+    local currentPrompt = ""
+    for i, palavra in ipairs(palavras) do
+        if (currentPrompt == "") then
+            currentPrompt = palavra;
+        else
+            currentPrompt = currentPrompt .. " " .. palavra;
+        end
+        local tokensUsados = rUtils.contarTokens(currentPrompt)
+        if tokensUsados >= maxTokens then
+            table.insert(prompts, currentPrompt)
+            currentPrompt = "";
+        end
+    end
+    if currentPrompt ~= "" then
+        table.insert(prompts, currentPrompt)
+    end
+    return prompts
+end
+
+function rUtils.startsWith(String, Start)
+    return string.sub(String, 1, string.len(Start)) == Start
+end
+
+-- Função para contar palavras (tokens) em uma string.
+function rUtils.contarTokens(str)
+    local count = 0
+    -- Conta palavras separadas por espaço, "_" ou "-"
+    for _ in string.gmatch(str, "[^%s_%-%c]+") do
+        count = count + 1
+    end
+    return count
+end
+
 function rUtils.rolarRankParaTokens(tokens)
     if tokens <= 1 then
         return RANKS[1].name
