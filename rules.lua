@@ -1,12 +1,12 @@
-local atributos = require("atributos.lua");
-local habilidades = require("habilidades.lua");
-local magia = require("magia.lua");
-local cenario = require("cenario.lua");
-local classes = require("classes.lua");
-local exemplos = require("exemplos.lua");
-local levelup = require("levelup.lua");
-local combate = require("combate.lua");
-local racas = require("racas.lua");
+local atributos = require("rules/atributos.lua");
+local habilidades = require("rules/habilidades.lua");
+local magia = require("rules/magia.lua");
+local cenario = require("rules/cenario.lua");
+local classes = require("rules/classes.lua");
+local exemplos = require("rules/exemplos.lua");
+local levelup = require("rules/levelup.lua");
+local combate = require("rules/combate.lua");
+local racas = require("rules/racas.lua");
 
 local rules =[[
 -- Início das Regras --

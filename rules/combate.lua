@@ -35,3 +35,4 @@ Algumas habilidades podem aplicar condições a um alvo. Elas adicionam uma cama
 ● Corrompido (Corrupted): Um vírus de dano por tempo foi instalado. O alvo sofre uma quantidade de dano (definida pela habilidade) no início de cada um de seus turnos.
 ● Silenciado (Silenced): Interface de áudio/prompt bloqueada. O alvo não pode usar Habilidades que tenham custo em Energia (mas ainda pode atacar com armas básicas, se tiver uma).
 ]]
+return combate
