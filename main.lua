@@ -1,8 +1,9 @@
 require("firecast.lua")
 require("internet.lua")
 require("log.lua")
+require("dialogs.lua");
+local habilidade = require("habilidade.lua")
 local aiPrompt = require("aiPrompt.lua")
-local rules = require("rules.lua")
 local rUtils = require("token_utils.lua")
 local Json = require("json.lua")
 local GEMINI_API_KEY = "";
@@ -98,47 +99,48 @@ local function geminiCall(prompt, type, chat)
                         respostaDecodificada;
                     local sucesso, efeito = pcall(Json.decode, respostaJson);
                     if sucesso and efeito.nome and efeito.custo and efeito.descricao then
-                    chat:asyncSendStd(
-                        "|Nome:" .. efeito.nome .. "\n|Custo: " .. efeito.custo .. "\n|Descrição:" .. efeito.descricao,
-                        sendparams);
-                    Log.i("SimulacrumCore",
-                        "Efeito aplicado: " .. efeito.nome .. " com custo de energia: " .. efeito.custo);
-                    Log.i("SimulacrumCore", "Descrição do efeito: " .. efeito.descricao);
-                else
-                    chat:asyncSendStd(" Resposta inválida do Gemini. Verifique o formato JSON.",
-                        sendparams);
-                    Log.e("SimulacrumCore", "Resposta inválida do Gemini: " .. respostaJson);
-                end
+                        chat:asyncSendStd(
+                            "|Nome:" ..
+                            efeito.nome .. "\n|Custo: " .. efeito.custo .. "\n|Descrição:" .. efeito.descricao,
+                            sendparams);
+                        Log.i("SimulacrumCore",
+                            "Efeito aplicado: " .. efeito.nome .. " com custo de energia: " .. efeito.custo);
+                        Log.i("SimulacrumCore", "Descrição do efeito: " .. efeito.descricao);
+                    else
+                        chat:asyncSendStd(" Resposta inválida do Gemini. Verifique o formato JSON.",
+                            sendparams);
+                        Log.e("SimulacrumCore", "Resposta inválida do Gemini: " .. respostaJson);
+                    end
                 elseif type == "aiMulticasting" then
                     local respostaJson = respostaDecodificada:match("```json\n(.-)\n```") or
                         respostaDecodificada:match("```(.-)```") or
                         respostaDecodificada;
-                local sucesso, efeito = pcall(Json.decode, respostaJson);
-                if not sucesso then
-                    chat:asyncSendStd(" Resposta inválida do Gemini. Verifique o formato JSON.",
-                        sendparams);
-                    Log.e("SimulacrumCore", "Resposta inválida do Gemini: " .. respostaJson);
-                    return;
-                end
-                if type(efeito) == "table" and #efeito > 0 then
-                    for i, efeitoItem in ipairs(efeito) do
-                        if efeitoItem.nome and efeitoItem.custo and efeitoItem.descricao then
-                            chat:asyncSendStd(
-                                "|Nome:" ..
-                                efeitoItem.nome ..
-                                "\n|Custo: " .. efeitoItem.custo .. "\n|Descrição:" .. efeitoItem.descricao,
-                                sendparams);
-                        else
-                            chat:asyncSendStd(" Resposta inválida do Gemini. Verifique o formato JSON.",
-                                sendparams);
-                            Log.e("SimulacrumCore", "Resposta inválida do Gemini: " .. respostaJson);
-                        end
+                    local sucesso, efeito = pcall(Json.decode, respostaJson);
+                    if not sucesso then
+                        chat:asyncSendStd(" Resposta inválida do Gemini. Verifique o formato JSON.",
+                            sendparams);
+                        Log.e("SimulacrumCore", "Resposta inválida do Gemini: " .. respostaJson);
+                        return;
                     end
-                else
-                    chat:asyncSendStd(
-                        " Resposta inválida do Gemini. Esperava uma lista de objetos JSON.", sendparams);
-                    Log.e("SimulacrumCore", "Resposta inválida do Gemini: " .. respostaJson);
-                end
+                    if type(efeito) == "table" and #efeito > 0 then
+                        for i, efeitoItem in ipairs(efeito) do
+                            if efeitoItem.nome and efeitoItem.custo and efeitoItem.descricao then
+                                chat:asyncSendStd(
+                                    "|Nome:" ..
+                                    efeitoItem.nome ..
+                                    "\n|Custo: " .. efeitoItem.custo .. "\n|Descrição:" .. efeitoItem.descricao,
+                                    sendparams);
+                            else
+                                chat:asyncSendStd(" Resposta inválida do Gemini. Verifique o formato JSON.",
+                                    sendparams);
+                                Log.e("SimulacrumCore", "Resposta inválida do Gemini: " .. respostaJson);
+                            end
+                        end
+                    else
+                        chat:asyncSendStd(
+                            " Resposta inválida do Gemini. Esperava uma lista de objetos JSON.", sendparams);
+                        Log.e("SimulacrumCore", "Resposta inválida do Gemini: " .. respostaJson);
+                    end
                 else
                     Log.e("SimulacrumCore", "Tipo de resposta inválido: " .. type);
                     return;
@@ -190,6 +192,112 @@ local function splitContext(contextoJogador)
     local prompt = aiPrompt.getAiMultiCasting(contextoJogador);
     geminiCall(prompt, "aiMulticasting", contextoJogador.chat);
 end
+
+Firecast.Messaging.listen(
+    "HandleChatCommand",
+    function(message)
+        if message.command == "geminiKey" then
+            local key = message.parameter
+            if key and key ~= "" then
+                GEMINI_API_KEY = key;
+                message.chat:writeEx(" Chave Gemini definida com sucesso.", sendparams);
+                Log.i("SimulacrumCore", "Chave Gemini definida: " .. GEMINI_API_KEY);
+            else
+                message.chat:writeEx(" Chave Gemini inválida. Use: geminiKey <sua_chave>", sendparams);
+                Log.e("SimulacrumCore", "Chave Gemini inválida recebida.");
+            end
+            message.response = { handled = true };
+        end
+
+        if message.command == "getSkill" then
+            local login = message.parameter;
+            habilidade.getSkills(login, message.chat.room);
+            message.response = { handled = true };
+        end
+
+        if message.command == "skillFusion" then
+            local login = message.parameter;
+            local list, habilidades = habilidade.skillFusion(login, message.chat.room);
+            local listNames = {};
+            for i, skill in ipairs(list) do
+                table.insert(listNames, skill.nome .. " (" .. skill.rank .. ")");
+            end
+            
+            Dialogs.choose("Selecione a habilidade base para a fusão:", listNames,
+                function(selected, selectedIndex, selectedText)
+                    if selected and habilidades then
+                        local selectedNode = list[selectedIndex];
+                        local baseSkill = NDB.getAttributes(selectedNode);
+                        table.remove(list, selectedIndex);
+                        table.remove(listNames, selectedIndex);
+                        NDB.deleteNode(selectedNode);
+                        local rank = habilidade.ranks[baseSkill.rank];
+                        if not rank then
+                            message.chat:writeEx("Rank inválido: " .. baseSkill.rank);
+                            local skill = NDB.createChildNode(habilidades, baseSkill.nome)
+                            skill.nome = baseSkill.nome
+                            skill.rank = baseSkill.rank
+                            skill.custo = baseSkill.custo
+                            skill.descricao = baseSkill.descricao
+                            return;
+                        end
+                        Dialogs.chooseMultiple("Selecione as habilidades a serem fundidas:",
+                            listNames,
+                            function(selected, selectedIndexes, selectedTexts)
+                                if selected then
+                                    local fusionSkills = {};
+                                    for i, index in ipairs(selectedIndexes) do
+                                        local skill = NDB.getAttributes(list[index]);
+                                        if skill then
+                                            table.insert(fusionSkills, skill);
+                                            NDB.deleteNode(list[index]);
+                                        end
+                                    end
+                                    if #fusionSkills == 0 then
+                                        message.chat:writeEx("Nenhuma habilidade selecionada para fusão.");
+                                        return;
+                                    end
+                                    local ph = 0;
+                                    for k, v in pairs(fusionSkills) do
+                                        local valor = habilidade.ranks[v.rank];
+                                        if valor then
+                                            ph = ph + valor;
+                                        else
+                                            Log.e("SimulacrumCore", "Rank inválido: " .. v.rank);
+                                        end
+                                    end
+                                    if ph == 0 then
+                                        message.chat:writeEx("Nenhum PH calculado para as habilidades selecionadas.");
+                                    end
+                                    local isRankUp = ph >= math.random(rank);
+                                    local jogador = message.chat.room:findJogador(login);
+                                    local linha = jogador:getEditableLine(1);
+                                    local nivel, raca, classe = linha:match("Level%s*(%d+)%s*|%s*([^|]+)%s*|%s*(.+)");
+
+                                    local contextoJogador = {
+                                        nivel = tonumber(nivel) or 1,
+                                        classe = classe:match("^%s*(.-)%s*$") or "Classe",
+                                        raca = raca:match("^%s*(.-)%s*$") or "Raça",
+                                        rankUp = isRankUp,
+                                        baseSkill = baseSkill,
+                                        fusionSkills = fusionSkills
+                                    }
+                                    local prompt = aiPrompt.getAiFusion(contextoJogador);
+                                    geminiCall(prompt, "aiCasting", message.chat);
+                                    Log.i("SimulacrumCore", "Prompt de fusão enviado");
+                                else
+                                    local skill = NDB.createChildNode(habilidades, baseSkill.nome)
+                                    skill.nome = baseSkill.nome
+                                    skill.rank = baseSkill.rank
+                                    skill.custo = baseSkill.custo
+                                    skill.descricao = baseSkill.descricao
+                                end
+                            end)
+                    end
+                end)
+            message.response = { handled = true };
+        end
+    end)
 
 Firecast.Messaging.listen("ChatMessageEx",
     function(message)
@@ -272,7 +380,7 @@ Firecast.Messaging.listen("ChatMessageEx",
             end
             if (rUtils.startsWith(content, "gemini ")) then
                 local prompt = content:sub(8):match("^%s*(.-)%s*$") -- Remove "gemini " prefix
-                geminiCall(prompt,"gemini", message.chat);
+                geminiCall(prompt, "gemini", message.chat);
             end
         end
     end

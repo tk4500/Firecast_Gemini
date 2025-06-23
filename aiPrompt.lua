@@ -1,5 +1,79 @@
 local rules = require("rules.lua");
+local skills = require("habilidade.lua");
 local aiPrompt = {};
+
+function aiPrompt.getAiFusion(contextoJogador)
+    local sacrifice = "";
+    for i, skill in ipairs(contextoJogador.fusionSkills) do
+        sacrifice = sacrifice .. [[
+        Nome: ]] .. skill.nome .. [[(]] .. skill.rank .. [[)
+        Custo: ]] .. skill.custo .. [[
+        Descrição: ]] .. skill.descricao .. [[
+        ]];
+    end
+    local base = [[
+        Nome: ]] .. contextoJogador.baseSkill.nome .. [[(]] .. contextoJogador.baseSkill.rank .. [[)
+        Custo: ]] .. contextoJogador.baseSkill.custo .. [[
+        Descrição: ]] .. contextoJogador.baseSkill.descricao .. [[
+        ]];
+    local teveRankUp = contextoJogador.rankUp ~= nil and contextoJogador.rankUp or false;
+    local rankFinalNome = contextoJogador.baseSkill.rank;
+    if teveRankUp then
+        local value = skills.base[rankFinalNome]
+        for i, v in ipairs(skills.ranks) do
+            if v == value then
+                rankFinalNome = i;
+                break;
+            end
+        end
+    end
+
+    local prompt = [[
+    Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG 'Simulacrum'. Sua função é realizar uma FUSÃO de habilidades, criando uma nova versão evoluída de uma habilidade base. Sua tarefa é criar uma habilidade sinérgica, respeitando o resultado da "Tentativa de RankUp".
+Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, sem texto introdutório ou final.
+
+A estrutura do JSON de resposta deve ser:
+{
+  "nome": "Um nome curto e criativo para a habilidade, incluindo seu rank. Ex: '<Escudo Cinético>', '<<Ataque Relâmpago>>'.",
+  "custo": "O custo em Energia para ativar esta habilidade.",
+  "descricao": "Uma descrição narrativa do que acontece e, o mais importante, uma descrição CLARA e QUANTIFICÁVEL do efeito mecânico. Ex: '...causando 5 de dano adicional', '...concedendo +2 de Defesa por 2 rodadas'."
+}
+
+-- [CONTEXTO DA FUSÃO] --
+- Habilidade Base (a ser evoluída):
+]] .. base .. [[
+- Habilidades Sacrificadas (para serem absorvidas):
+]] .. sacrifice .. [[
+- **Resultado da Tentativa de RankUp**: ]] .. (teveRankUp and "SUCESSO" or "FALHA") .. [[
+- **Nivel do Jogador**: ]] .. contextoJogador.nivel .. [[
+- **Classe do Jogador**: ]] .. contextoJogador.classe .. [[
+- **Raça do Jogador**: ]] .. contextoJogador.raca .. [[
+-- [FIM DO CONTEXTO] --
+
+
+-- [DIRETRIZES DE CRIAÇÃO DA NOVA HABILIDADE] --
+Siga estas diretrizes estritamente:
+
+1.  **Determinar o Rank Final**:
+    *   Como a Tentativa de RankUp resultou em ']] ..
+    (teveRankUp and "SUCESSO" or "FALHA") .. [[', o Rank da nova habilidade DEVE ser: ']] .. rankFinalNome .. [['.
+2.  **Criar o Efeito Sinérgico ('descricao')**:
+    *   A nova descrição deve ser uma fusão inteligente dos efeitos. Não apenas junte as descrições, combine-os em algo novo.
+    *   **Se houve RankUp (SUCESSO)**: O efeito deve ser notavelmente mais poderoso ou eficiente, justificando o novo Rank. Ex: Se 'Soco Forte' (dano+3) se funde com 'Centelha de Fogo' (dano de fogo 2) e dá RankUp, o resultado pode ser 'Punho Ígneo', que causa dano+5 e aplica a condição 'Corrompido'.
+    *   **Se NÃO houve RankUp (FALHA)**: O efeito deve ser uma combinação modesta, mantendo-se no mesmo nível de poder do Rank original. Ex: 'Soco Forte' + 'Centelha de Fogo' sem RankUp pode resultar em 'Soco Flamejante', que causa dano+3 e um dano de fogo adicional de 2.
+
+3.  **Criar o Nome ('nome')**: Crie um nome novo e criativo que reflita a fusão e inclua os símbolos do Rank final determinado na Diretriz 1.
+
+4.  **Balanceamento**: Em ambos os cenários, use as regras de referência abaixo para garantir que a nova habilidade seja balanceada para seu Rank final.
+-- [FIM DAS DIRETRIZES] --
+
+
+-- [REGRAS DE REFERÊNCIA DO JOGO] --
+]] .. rules .. [[
+-- [FIM DAS REGRAS] --
+]]
+    return prompt;
+end
 
 function aiPrompt.getAiCasting(contextoJogador)
     local prompt = [[
