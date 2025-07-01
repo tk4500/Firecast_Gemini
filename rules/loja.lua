@@ -1,7 +1,6 @@
 local loja = [[
 Loja do Simulacrum - Aba de Habilidades
 Uma voz suave e corporativa soa em seu HUD: "Bem-vindo à Loja de Macros de Habilidade da FriendSoft! Acelere seu progresso e personalize sua experiência com estes pacotes de dados testados e aprovados. Compra segura e instalação instantânea!"
-
 Habilidades Comuns (Rank: Common - 1 Token)
 Estas são macros básicas, ideais para novos usuários ou para preencher lacunas em seu conjunto de habilidades.
 Nome da Habilidade	Preço (Créditos-S)	Descrição Resumida
@@ -20,7 +19,6 @@ Provisões de Emergência	1.500	Cura de 1/3 da vida, uma vez por dia.
 Invocar Comida	1.500	Recupera metade da vida/energia, uma vez por dia, fora de combate.
 Lâmina Biológica	2.500	Passiva: +3 de dano, -1 para acertar com uma mutação visual permanente.
 Suportar Dor	2.500	Sobrevive a um golpe fatal com 1 de vida, uma vez por dia.
-
 Habilidades Avançadas (Rank: <Basic> - 2 Tokens)
 Pacotes de dados mais complexos com maior impacto tático. Um investimento sólido para qualquer usuário sério.
 Nome da Habilidade	Preço (Créditos-S)	Descrição Resumida
@@ -38,7 +36,6 @@ Nome da Habilidade	Preço (Créditos-S)	Descrição Resumida
 <Postura Cansativa>	4.500	Grande bônus de defesa que decai com o tempo.
 <Obsessão Tecnológica>	7.500	Passiva única que permite gastar energia para obter descontos na loja.
 <Montar Golem de Sucata>	8.000	Invoca um golem de sucata persistente, uma vez por dia.
-
 Habilidades de Especialista (Rank: <<Extra>> - 4 Tokens)
 Macros de elite, exigindo um alto nível de acesso e sincronia com a "Friend". Estes são investimentos de fim de jogo.
 Nome da Habilidade	Preço (Créditos-S)	Descrição Resumida

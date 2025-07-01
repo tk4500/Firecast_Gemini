@@ -8,7 +8,7 @@ local levelup = require("rules/levelup.lua");
 local combate = require("rules/combate.lua");
 local racas = require("rules/racas.lua");
 local loja = require("rules/loja.lua");
-
+local crafting = require("rules/crafting.lua");
 local rules =[[
 -- Início das Regras --
 - Regras do Jogo -
@@ -22,6 +22,7 @@ local rules =[[
 ]] .. combate .. [[
 ]] .. racas .. [[
 ]] .. loja .. [[
+]] .. crafting .. [[
 -- Fim das Regras --
 ]]
 return rules;
