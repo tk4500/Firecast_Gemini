@@ -1,5 +1,6 @@
 local rules = require("rules.lua");
 local skills = require("habilidade.lua");
+local rUtils = require("token_utils.lua");
 local aiPrompt = {};
 
 function aiPrompt.getAiFusion(contextoJogador)
@@ -16,17 +17,32 @@ function aiPrompt.getAiFusion(contextoJogador)
         Custo: ]] .. contextoJogador.baseSkill.custo .. [[
         Descrição: ]] .. contextoJogador.baseSkill.descricao .. [[
         ]];
-    local teveRankUp = contextoJogador.rankUp ~= nil and contextoJogador.rankUp or false;
+    local teveRankUp = contextoJogador.rankUp;
     local rankFinalNome = contextoJogador.baseSkill.rank;
     if teveRankUp then
-        local value = skills.base[rankFinalNome]
-        for i, v in ipairs(skills.ranks) do
-            if v == value then
-                rankFinalNome = i;
-                break;
-            end
+        if contextoJogador.baseSkill.rank == "Common" then
+            rankFinalNome = "Basic";
+        elseif contextoJogador.baseSkill.rank == "Basic" then
+            rankFinalNome = "Extra";
+        elseif contextoJogador.baseSkill.rank == "Extra" then
+            rankFinalNome = "Unique";
+        elseif contextoJogador.baseSkill.rank == "Unique" then
+            rankFinalNome = "Ultimate";
+        elseif contextoJogador.baseSkill.rank == "Ultimate" then
+            rankFinalNome = "Sekai";
+        elseif contextoJogador.baseSkill.rank == "Sekai" then
+            rankFinalNome = "Stellar";
+        elseif contextoJogador.baseSkill.rank == "Stellar" then
+            rankFinalNome = "Cosmic";
+        elseif contextoJogador.baseSkill.rank == "Cosmic" then
+            rankFinalNome = "Universal";
+        elseif contextoJogador.baseSkill.rank == "Universal" then
+            rankFinalNome = "MultiVersal";
         end
+    else
+        -- Se não houve RankUp, mantemos o Rank original da habilidade base.
     end
+    Log.i("SimulacrumCore", "getAiFusion: rankFinalNome: " .. rankFinalNome);
 
     local prompt = [[
     Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG 'Simulacrum'. Sua função é realizar uma FUSÃO de habilidades, criando uma nova versão evoluída de uma habilidade base. Sua tarefa é criar uma habilidade sinérgica, respeitando o resultado da "Tentativa de RankUp".
@@ -44,7 +60,7 @@ A estrutura do JSON de resposta deve ser:
 ]] .. base .. [[
 - Habilidades Sacrificadas (para serem absorvidas):
 ]] .. sacrifice .. [[
-- **Resultado da Tentativa de RankUp**: ]] .. (teveRankUp and "SUCESSO" or "FALHA") .. [[
+- **Rank resultante **: ]] .. rankFinalNome .. [[
 - **Nivel do Jogador**: ]] .. contextoJogador.nivel .. [[
 - **Classe do Jogador**: ]] .. contextoJogador.classe .. [[
 - **Raça do Jogador**: ]] .. contextoJogador.raca .. [[
@@ -54,9 +70,8 @@ A estrutura do JSON de resposta deve ser:
 -- [DIRETRIZES DE CRIAÇÃO DA NOVA HABILIDADE] --
 Siga estas diretrizes estritamente:
 
-1.  **Determinar o Rank Final**:
-    *   Como a Tentativa de RankUp resultou em ']] ..
-    (teveRankUp and "SUCESSO" or "FALHA") .. [[', o Rank da nova habilidade DEVE ser: ']] .. rankFinalNome .. [['.
+1.  **Utilizar o Rank passado**:
+    * Foi passado o Rank resultante no prompt, a skill criada deve conter aquele rank.
 2.  **Criar o Efeito Sinérgico ('descricao')**:
     *   A nova descrição deve ser uma fusão inteligente dos efeitos. Não apenas junte as descrições, combine-os em algo novo.
     *   **Se houve RankUp (SUCESSO)**: O efeito deve ser notavelmente mais poderoso ou eficiente, justificando o novo Rank. Ex: Se 'Soco Forte' (dano+3) se funde com 'Centelha de Fogo' (dano de fogo 2) e dá RankUp, o resultado pode ser 'Punho Ígneo', que causa dano+5 e aplica a condição 'Corrompido'.
@@ -115,6 +130,9 @@ Agora, siga estas diretrizes para criar a habilidade:
 -   **Seja Quantitativo**: A descrição do efeito ('descricao') deve incluir números claros (ex: +3 de Defesa, restaura 15 de Vida, dura por 3 rodadas).
 
 -- [FIM DAS DIRETRIZES] --
+-- [FICHA COMPLETA DO JOGADOR] --
+ ]].. rUtils.getTextFromCharacter(contextoJogador.personagem) .. [[
+-- [FIM DA FICHA] --
             Regras da Mesa:
             ]] .. rules .. [[
 
@@ -184,6 +202,9 @@ Siga estas diretrizes estritamente:
 5.  **Nomes Sequenciais**: Dê a cada parte um nome que indique sua posição na sequência (ex: "Passo 1: ...", "Fase 2: ...").
 
 -- [FIM DAS DIRETRIZES] --
+-- [FICHA COMPLETA DO JOGADOR] --
+ ]].. rUtils.getTextFromCharacter(contextoJogador.personagem) .. [[
+-- [FIM DA FICHA] --
             Regras da Mesa: ]] .. rules .. [[
 
             Exemplo:
@@ -224,6 +245,15 @@ Siga estas diretrizes estritamente:
             Agora, analise o prompt do jogador e forneça a resposta JSON correspondente.
         ]]
     return prompt;
+end
+
+function aiPrompt.friendPrompt(prompt)
+    local completePrompt =
+    [[Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG de Realidade Aumentada 'Simulacrum'. Sua função é analisar um 'prompt' de um jogador e gerar uma resposta narrativa e mecânica coerente, balanceada e dentro das regras do sistema
+    aqui estão as regras do sistema: ]] .. rules .. [[
+    você deve responder a duvida do jogador de forma clara e objetiva, sem rodeios ou informações desnecessárias.
+    prompt do jogador: ]] .. prompt
+    return completePrompt;
 end
 
 return aiPrompt;

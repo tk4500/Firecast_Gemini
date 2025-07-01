@@ -7,6 +7,7 @@ local exemplos = require("rules/exemplos.lua");
 local levelup = require("rules/levelup.lua");
 local combate = require("rules/combate.lua");
 local racas = require("rules/racas.lua");
+local loja = require("rules/loja.lua");
 
 local rules =[[
 -- Início das Regras --
@@ -20,5 +21,7 @@ local rules =[[
 ]] .. levelup .. [[
 ]] .. combate .. [[
 ]] .. racas .. [[
+]] .. loja .. [[
+-- Fim das Regras --
 ]]
 return rules;

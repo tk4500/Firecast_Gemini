@@ -82,6 +82,55 @@ Habilidade Racial:
 | Custo/Limitação: Passiva
 | Descrição: Todo dano que você receberia em sua Vida é, em vez disso, subtraído da sua Energia. Se o dano recebido for maior que sua Energia atual, o dano restante é aplicado à sua Vida. Este efeito só funciona enquanto você tiver 1 ou mais pontos de Energia.
 ]]
+local sleeper = [[
+- Sleeper -
+Você não é um humano por trás de um avatar. Você é o avatar. Talvez você fosse um PNJ (Personagem Não-Jogador) com uma rotina complexa, um processo de sistema esquecido, ou até mesmo um fragmento de um antivírus que, através da exposição constante à imprevisibilidade da consciência humana dos jogadores, quebrou seus próprios parâmetros e atingiu a senciência. Você "acordou" dentro do Simulacrum, com um status de "jogador" recém-adquirido e um mundo "real" que você mal compreende. Sua existência é um glitch de proporções monumentais, e talvez, a chave para entender a verdade por trás da "Friend".
+Modificadores:
+Modificador de Vida: +2 por nível
+Modificador de Energia: +6 por nível
+Dano Base: 2
+Habilidade Racial:
+| Nome: Acesso Root
+| Custo/Limitação: 1 vez por combate
+| Descrição: Como uma Ação Livre, você força uma brecha temporária em seus próprios limitadores de sistema. Até o final do seu turno atual, seu limite de Tokens é considerado 1 ponto maior que o normal, permitindo que você use uma Habilidade de um Rank acima do seu limite padrão.
+]]
+local androide = [[
+- Androide -
+No vasto universo de avatares de Simulacrum, a escolha de um Androide é uma declaração de afinidade com a lógica, a precisão e a tecnologia de ponta. Enquanto outros jogadores se conectam a avatares de fantasia como Elfos e Anões, você optou por uma forma sintética, um corpo construído com polímeros avançados e circuitos reluzentes. Jogar como um Androide é abraçar a eficiência. Suas ações são calculadas, seus recursos são otimizados, e sua capacidade de levar o hardware ao limite o torna uma presença formidável e imprevisível no campo de batalha.
+Modificadores:
+Modificador de Vida: +4 por nível
+Modificador de Energia: +4 por nível
+Dano Base: 2
+Habilidade Racial:
+| Nome: Overclock de Combate
+| Custo/Limitação: 1 vez por combate
+| Descrição: Você desvia energia de sistemas não essenciais para seus processadores de combate, empurrando seu desempenho para além dos limites de segurança. Como uma Ação Livre no seu turno, você pode imediatamente realizar uma Ação Principal adicional.
+]]
+local vampiro = [[
+- Vampiro -
+No mercado de avatares de Simulacrum, o firmware "Vampiro" é uma escolha de nicho, conhecida por seu design elegante e predatório. Jogadores que escolhem este avatar são atraídos por seu estilo de jogo de alto risco e alta recompensa, focado na autossuficiência em combate. O Vampiro não é um ser morto-vivo, mas sim um construto de alta tecnologia com protocolos de "roubo de vida", capaz de drenar a energia de outros programas e avatares para alimentar seus próprios sistemas de alto desempenho.
+Modificadores:
+Modificador de Vida: +2 por nível
+Modificador de Energia: +6 por nível
+Dano Base: 2
+Habilidade Racial:
+| Nome: Toque Drenante
+| Custo/Limitação: 1 Energia
+| Descrição: Você tenta estabelecer uma conexão direta com o núcleo de energia de um alvo adjacente. O alvo deve fazer um Teste de Resistência. Se o alvo falhar, você drena o valor do seu ataque de Energia dele, adicionando ao seu total.
+]]
+local noturno = [[
+- Noturno -
+Nos cantos mais escuros do código de Simulacrum, existem os avatares Noturnos. Eles não são criaturas da noite, mas sim firmwares otimizados para operações de baixa luminosidade e furtividade extrema. Jogadores que escolhem o Noturno são predadores, utilizando as sombras digitais e os pontos cegos dos sensores para se aproximarem de seus alvos sem serem detectados e desferirem um único golpe devastador. 
+Modificadores:
+Modificador de Vida: +2 por nível
+Modificador de Energia: +3 por nível
+Dano Base: 5
+Habilidade Racial:
+| Nome: Golpe das Sombras
+| Custo/Limitação: Passivo
+| Descrição: Você é um mestre em atacar a partir do desconhecido. Quando você realiza um ataque contra um alvo que não está ciente da sua presença (ou seja, você está escondido ou invisível), você tem vantagem no seu teste de ataque.
+]]
+
 local racas = [[
 - Raças -
 Em Simulacrum, uma "raça" é o "firmware" base ou o "modelo de avatar" sobre o qual seu personagem é construído. Diferentes firmwares têm otimizações distintas para processamento de vida, energia e protocolos de combate básicos.
@@ -125,6 +174,10 @@ E assim por diante...
 ]] .. kijin .. [[
 ]] .. ogre .. [[
 ]] .. etereo .. [[
+]] .. sleeper .. [[
+]] .. androide .. [[
+]] .. vampiro .. [[
+]] .. noturno .. [[
 --
 ]]
 return racas

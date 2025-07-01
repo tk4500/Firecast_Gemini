@@ -222,7 +222,7 @@ Firecast.Messaging.listen(
             for i, skill in ipairs(list) do
                 table.insert(listNames, skill.nome .. " (" .. skill.rank .. ")");
             end
-            
+
             Dialogs.choose("Selecione a habilidade base para a fusão:", listNames,
                 function(selected, selectedIndex, selectedText)
                     if selected and habilidades then
@@ -232,6 +232,7 @@ Firecast.Messaging.listen(
                         table.remove(listNames, selectedIndex);
                         NDB.deleteNode(selectedNode);
                         local rank = habilidade.ranks[baseSkill.rank];
+                        Log.i("SimulacrumCore", "Rank da habilidade base: " .. rank);
                         if not rank then
                             message.chat:writeEx("Rank inválido: " .. baseSkill.rank);
                             local skill = NDB.createChildNode(habilidades, baseSkill.nome)
@@ -266,10 +267,18 @@ Firecast.Messaging.listen(
                                             Log.e("SimulacrumCore", "Rank inválido: " .. v.rank);
                                         end
                                     end
+                                    message.chat:writeEx("PH".. ph);
+                                    message.chat:writeEx("rank".. rank);
                                     if ph == 0 then
                                         message.chat:writeEx("Nenhum PH calculado para as habilidades selecionadas.");
                                     end
-                                    local isRankUp = ph >= math.random(rank);
+                                    local isRankUp = false;
+                                    if (ph >= math.random(rank)) then
+                                        isRankUp = true;
+                                    end
+                                    Log.i("SimulacrumCore", "PH calculado: " .. ph);
+                                    Log.i("SimulacrumCore", "Rank Up: " .. tostring(isRankUp));
+                                    Log.i("SimulacrumCore", "Rank: " .. rank);
                                     local jogador = message.chat.room:findJogador(login);
                                     local linha = jogador:getEditableLine(1);
                                     local nivel, raca, classe = linha:match("Level%s*(%d+)%s*|%s*([^|]+)%s*|%s*(.+)");
@@ -304,6 +313,113 @@ Firecast.Messaging.listen("ChatMessageEx",
         if message.logRec.msg.content then
             local content = message.logRec.msg.content;
             Log.i("SimulacrumCore", "ChatMessageEx received: " .. content);
+            if (rUtils.startsWith(content, "Fusion:")) then
+                local prompt = content:sub(8);
+                local baseSkill, fusionSkills = rUtils.parseFusion(prompt);
+                if not baseSkill or not baseSkill.nome or not baseSkill.rank then
+                    message.chat:asyncSendStd(" Formato inválido. Use: Fusion: [HabilidadeBase(Rank)] [Habilidade1(Rank)] [Habilidade2(Rank)] ...",
+                        sendparams);
+                    return;
+                end
+                Log.i("SimulacrumCore", "Base Skill: " .. baseSkill.nome .. " (Rank: " .. baseSkill.rank .. ")");
+                Log.i("SimulacrumCore", "Fusion Skills: " .. #fusionSkills .. " habilidades selecionadas.");
+                local rank = habilidade.base[baseSkill.rank];
+                if not rank then
+                    message.chat:writeEx("Rank inválido: " .. baseSkill.rank);
+                    return;
+                end
+                if not baseSkill or not fusionSkills or #fusionSkills == 0 then
+                    message.chat:asyncSendStd(
+                        " Formato inválido. Use: Fusion: [HabilidadeBase(Rank)] [Habilidade1(Rank)] [Habilidade2(Rank)] ...",
+                        sendparams);
+                    return;
+                end
+                local skilltable = habilidade.getSkillTables(message.logRec.entity.login, message.chat.room);
+                if not skilltable then
+                    message.chat:asyncSendStd(" Habilidade base não encontrada.", sendparams);
+                    return;
+                end
+                local list = NDB.getChildNodes(skilltable);
+                Log.i("SimulacrumCore", "Habilidades encontradas: " .. #list);
+                for i, skill in ipairs(list) do
+                    local skillatt = NDB.getAttributes(skill);
+                    Log.i("SimulacrumCore", "Habilidade encontrada: " .. skillatt.nome .. " (Rank: " .. skillatt.rank .. ")");
+                    Log.i("SimulacrumCore", "Custo: " .. skillatt.custo .. ", Descrição: " .. skillatt.descricao);
+                    if skill.nome == baseSkill.nome and skill.rank == baseSkill.rank then
+                        baseSkill.custo = skillatt.custo;
+                        baseSkill.descricao = skillatt.descricao;
+                        Log.i("SimulacrumCore",
+                            "Habilidade base encontrada: " .. baseSkill.nome .. " (Rank: " .. baseSkill.rank .. ")");
+                        Log.i("SimulacrumCore", "Custo: " .. baseSkill.custo .. ", Descrição: " .. baseSkill.descricao);
+                        NDB.deleteNode(skill);
+                    end
+                    if #fusionSkills == 1 then
+                        if skill.nome == fusionSkills[1].nome and skill.rank == fusionSkills[1].rank then
+                            fusionSkills[1].custo = skillatt.custo;
+                            fusionSkills[1].descricao = skillatt.descricao;
+                            Log.i("SimulacrumCore",
+                                "Habilidade de fusão encontrada: " .. fusionSkills[1].nome .. " (Rank: " ..
+                                fusionSkills[1].rank .. ")");
+                            Log.i("SimulacrumCore", "Custo: " .. fusionSkills[1].custo .. ", Descrição: " ..
+                                fusionSkills[1].descricao);
+                            NDB.deleteNode(skill);
+                        end
+                    else
+                        for j, fusionSkill in ipairs(fusionSkills) do
+                            if skill.nome == fusionSkill.nome and skill.rank == fusionSkill.rank then
+                                fusionSkill.custo = skillatt.custo;
+                                fusionSkill.descricao = skillatt.descricao;
+                                Log.i("SimulacrumCore",
+                                    "Habilidade de fusão encontrada: " .. fusionSkill.nome .. " (Rank: " ..
+                                    fusionSkill.rank .. ")");
+                                Log.i("SimulacrumCore", "Custo: " .. fusionSkill.custo .. ", Descrição: " ..
+                                    fusionSkill.descricao);
+                                NDB.deleteNode(skill);
+                                break;
+                            end
+                        end
+                        
+                    end
+                    
+                end
+                local ph = 0;
+                for k, v in pairs(fusionSkills) do
+                    local valor = habilidade.ranks[v.rank];
+                    if valor then
+                        ph = ph + valor;
+                    else
+                        Log.e("SimulacrumCore", "Rank inválido: " .. v.rank);
+                    end
+                end
+                if ph == 0 then
+                    message.chat:writeEx("Nenhum PH calculado para as habilidades selecionadas.");
+                end
+                Log.i("SimulacrumCore", "PH calculado: " .. ph);
+                Log.i("SimulacrumCore", "Rank: " .. rank);
+                local isRankUp = false;
+                local teste = math.random(rank);
+                Log.i("SimulacrumCore", "Teste aleatório: " .. teste);
+                if (ph >= teste) then
+                    isRankUp = true;
+                end
+                Log.i("SimulacrumCore", "Rank Up: " .. tostring(isRankUp));
+                local jogador = message.chat.room:findJogador(message.logRec.entity.login);
+                local linha = jogador:getEditableLine(1);
+                local nivel, raca, classe = linha:match("Level%s*(%d+)%s*|%s*([^|]+)%s*|%s*(.+)");
+
+                local contextoJogador = {
+                    nivel = tonumber(nivel) or 1,
+                    classe = classe:match("^%s*(.-)%s*$") or "Classe",
+                    raca = raca:match("^%s*(.-)%s*$") or "Raça",
+                    rankUp = isRankUp,
+                    baseSkill = baseSkill,
+                    fusionSkills = fusionSkills
+                }
+                Log.i("SimulacrumCore", "Contexto do jogador preparado para fusão: " .. Json.encode(contextoJogador));
+                local prompt = aiPrompt.getAiFusion(contextoJogador);
+                geminiCall(prompt, "aiCasting", message.chat);
+                Log.i("SimulacrumCore", "Prompt de fusão enviado");
+            end
             if (rUtils.startsWith(content, "Friend:")) then
                 local promptEnergia = content:sub(8):match("^%s*(.-)%s*$") -- Remove "Friend:" prefix e espaços
                 local prompt, energiaStr = promptEnergia:match("^(.-)%s*%((.-)%)%s*$")
@@ -344,6 +460,7 @@ Firecast.Messaging.listen("ChatMessageEx",
 
                 local rank = rUtils.rolarRankParaTokens(tokens);
                 Log.i("Rank calculado: " .. rank);
+                local personagem = message.chat.room:findBibliotecaItem(jogador.personagemPrincipal);
 
                 local contextoJogador = {
                     nivel = nivel,
@@ -354,7 +471,8 @@ Firecast.Messaging.listen("ChatMessageEx",
                     rank = rank,
                     maxTokens = tokens,
                     promptJogador = prompt,
-                    chat = message.chat
+                    chat = message.chat,
+                    personagem = personagem
                 };
                 if tokensUsados > tokens then
                     splitContext(contextoJogador);
@@ -365,7 +483,7 @@ Firecast.Messaging.listen("ChatMessageEx",
             end
             if (rUtils.startsWith(content, "Friend ")) then
                 local prompt = content:sub(8):match("^%s*(.-)%s*$") -- Remove "Friend " prefix
-                geminiCall(prompt, "friend", message.chat);
+                geminiCall(aiPrompt.friendPrompt(prompt), "friend", message.chat);
             end
             if (rUtils.startsWith(content, "geminiKey ") and message.mine) then
                 local key = content:sub(10):match("^%s*(.-)%s*$") -- Remove "geminiKey " prefix
@@ -381,6 +499,25 @@ Firecast.Messaging.listen("ChatMessageEx",
             if (rUtils.startsWith(content, "gemini ")) then
                 local prompt = content:sub(8):match("^%s*(.-)%s*$") -- Remove "gemini " prefix
                 geminiCall(prompt, "gemini", message.chat);
+            end
+            if (content == "ficha") then
+                local jogador = getPlayerFromChat(message);
+                if not jogador then
+                    message.chat:asyncSendStd(" Jogador não encontrado no chat.", sendparams);
+                    return;
+                end
+                local personagem = message.chat.room:findBibliotecaItem(jogador.personagemPrincipal);
+                if not personagem then
+                    message.chat:asyncSendStd(" Personagem não encontrado: " .. jogador.personagemPrincipal,
+                        sendparams);
+                    return;
+                end
+                local texto = rUtils.getTextFromCharacter(personagem);
+                if not texto or texto == "" then
+                    message.chat:asyncSendStd(" Ficha do personagem está vazia ou não encontrada.", sendparams);
+                else
+                    message.chat:asyncSendStd(" Ficha do personagem:\n" .. texto, sendparams);
+                end
             end
         end
     end

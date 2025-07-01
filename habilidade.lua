@@ -26,7 +26,7 @@ skill.ranks = {
     MultiVersal = 50000
 }
 
-local function getSkillTables(login, mesa)
+function skill.getSkillTables(login, mesa)
     local jogador = mesa:findJogador(login);
     if not jogador then
         mesa.chat:writeEx("jogador não encontrado");
@@ -59,7 +59,7 @@ local function getSkillTables(login, mesa)
 end
 
 function skill.skillFusion(login, mesa)
-    local habilidades = getSkillTables(login, mesa);
+    local habilidades = skill.getSkillTables(login, mesa);
     local list = NDB.getChildNodes(habilidades);
     if #list < 2 then
         mesa.chat:writeEx("Você precisa de pelo menos duas habilidades para fundir.");
@@ -69,7 +69,7 @@ function skill.skillFusion(login, mesa)
 end
 
 function skill.getSkills(login, mesa)
-    local habilidades = getSkillTables(login, mesa);
+    local habilidades = skill.getSkillTables(login, mesa);
     local list = NDB.getChildNodes(habilidades);
     if #list == 0 then
         mesa.chat:writeEx("Nenhuma habilidade encontrada para o jogador: " .. login);

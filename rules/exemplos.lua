@@ -1,8 +1,28 @@
 local exemplos = [[
 Exemplos:
+| Nome: Devoção Econômica
+| Custo/Limitação: Passiva
+| Descrição: Skills usadas contra inimigos "Corruptos" custam 50% menos.
+
+| Nome: Obsessão Tecnológica
+| Custo/Limitação: Metade da sua energia (em relação a máxima)
+| Descrição: Toda vez que você comprar um item na loja do Simulacrum, você pode pagar metade da sua reservas de energia para diminuir o preço em 25%
+
+| Nome: O Rizzler
+| Custo/Limitação: 15 energia
+| Descrição: Ao tentar convencer alguém que o que você está falando é plausível, verdadeiro ou correto, você pode pagar 15 de energia para ter um bônus de +5 no teste.
+
+| Nome: Construtos Improvisados
+| Custo/Limitação: 20 energia
+| Descrição: Você consegue criar um construto feito de um material aleatório por perto, podendo controlá-lo com sua mente, ele tem 50 de vida e zero energia, mas ele pode utilizar suas habilidades e gastar da sua energia como se fosse você, você consegue ver através de seus olhos e controlá-lo dentro de um raio de 1km, essse construto dura apenas 1 hora.
+
 | Nome: Disparo de Energia
 | Custo/Limitação: 2 de Energia
 | Descrição: Você envia um prompt básico de ataque. Um feixe de luz pura é renderizado e disparado em um alvo. Você ataca, e , se acertar, causa seu Dano Base + 2 de dano.
+
+| Nome: Renderizar Drone de Vigilância
+| Custo/Limitação: 4 Energia
+| Descrição: Você manifesta um pequeno drone esférico com uma única lente ótica. O drone flutua silenciosamente ao seu redor, seguindo seus comandos. Ele não pode atacar. Fora de combate, você pode enviá-lo para explorar áreas a até 30 metros de distância, vendo através de sua câmera. Em combate, como uma Ação Bônus, você pode comandá-lo a se posicionar, concedendo a você ou a um aliado a capacidade de ignorar cobertura leve ao atacar um alvo que o drone possa ver. O drone tem 5 de Vida e persiste até ser destruído ou dispensado.
 
 | Nome: Musculatura Desenvolvida
 | Custo/Limitação: Passiva
@@ -72,6 +92,22 @@ Exemplos:
 | Custo/Limitação: 6 de Energia
 | Descrição: Um prompt de ataque aprimorado. Você materializa e lança uma lança de energia superaquecida. Causa seu Dano Base + 5 de dano e ignora 1 ponto de Defesa do alvo.
 
+| Nome: <Maratonista>
+| Custo/Limitação: Passiva
+| Descrição: A cada rodada que passar, sua iniciativa aumenta em 2.
+
+| Nome: <Postura Cansativa>
+| Custo/Limitação: 10 Energia
+| Descrição: Ao ativar essa habilidade, você ganha +5 de classe de armadura, mas a cada turno que se passar, você perde 1 desse bônus.
+
+| Nome: <Instalar Barricada Tática>
+| Custo/Limitação: 8 Energia
+| Descrição: Você manifesta e instala uma barricada de metal e energia com 3 metros de comprimento e 1,5 metro de altura. A barricada tem 40 de Vida e 5 de Defesa. Ela pode ser usada como cobertura total. Se um inimigo tentar atravessá-la, sofre 5 de dano elétrico. A barricada permanece no local indefinidamente até ser destruída. Você pode ter no máximo duas barricadas ativas ao mesmo tempo.
+
+| Nome: <Montar Golem de Sucata>
+| Custo/Limitação: 10 Energia, 1 vez por dia
+| Descrição: Usando materiais do ambiente (lixo, pedras, etc.), você manifesta um golem de sucata bípede e desajeitado do tamanho de um humano. Ele age após o seu turno e segue seus comandos simples ("ataque", "defenda", "siga"). Ele tem 25 de Vida, 8 de Defesa e seu ataque de pancada causa 6 de dano. O golem persiste até ser destruído. Ele não pode ser curado por meios normais, mas um Artífice pode usar a ação "Reparar" para restaurar sua vida fora de combate.
+
 | Nome: <Pacote de Cura Otimizado>
 | Custo/Limitação: 5 de Energia
 | Descrição: Você executa um comando de diagnóstico e reparo de avatar. Você ou um aliado que você toca recupera 15 de Vida.
@@ -88,21 +124,32 @@ Exemplos:
 | Custo/Limitação: 2 Energia
 | Descrição: Você dá um soco mais forte do que o comum, você recebe um bônus de +5 de dano para ataques que sejam feitos com soco.
 
-| Nome: <Lança de Chamas> 
-| Custo/Limitação: 8 Energia 
+| Nome: <Lança de Chamas>
+| Custo/Limitação: 8 Energia
 | Descrição: Você dispara um cone de 5 metros de chamas digitais. Todos os alvos na área devem fazer um Teste ou sofrerão 8 de dano.
 
-| Nome: <Escudo de Aegis> 
-| Custo/Limitação: 6 Energia 
+| Nome: <Escudo de Aegis>
+| Custo/Limitação: 6 Energia
 | Descrição: Você projeta um escudo de energia em um aliado (ou em você mesmo). O alvo ganha 15 de Vida temporária. Dura até ser quebrado.
 
-| Nome: <Passo Fantasma> 
-| Custo/Limitação: 5 Energia 
+| Nome: <Passo Fantasma>
+| Custo/Limitação: 5 Energia
 | Descrição: Você se desmaterializa e se rematerializa em qualquer ponto a até 10 metros que você possa ver.
 
-| Nome: <Bênção de Batalha> 
-| Custo/Limitação: 10 Energia 
+| Nome: <Bênção de Batalha>
+| Custo/Limitação: 10 Energia
 | Descrição: Você e todos os aliados a até 5 metros de você ganham +1 em todos os Testes de Ataque por 3 rodadas.
+
+| Nome: <<Implementar Campo de Reparo>>
+| Custo/Limitação: 15 Energia
+| Descrição: Você manifesta e posiciona um dispositivo do tamanho de uma mochila no chão. O dispositivo projeta um campo de energia calmante com 5 metros de raio. No final de cada rodada, você e todos os aliados dentro do campo recuperam 5 de Vida. Construtos aliados (como torretas ou golens) recuperam 10 de Vida. O dispositivo tem 30 de Vida e pode ser atacado. Ele persiste até ser destruído ou dispensado.
+
+| Nome: <<Renderizar Unidade K-9 de Combate>>
+| Custo/Limitação: 18 Energia, requer 1 [Núcleo de Processamento Lógico]
+| Descrição: Você usa um núcleo de processamento para renderizar um companheiro canino robótico ágil e letal. A unidade K-9 tem 40 de Vida, 12 de Defesa e uma velocidade de 15 metros. Ela age em seu turno e pode realizar duas ações:
+Mordida Elétrica: Um ataque corpo a corpo que causa 8 de dano.
+Protocolo de Derrubada: Tenta derrubar um alvo, que deve fazer um teste de Agilidade ou ficará Caído (Prone).
+O K-9 persiste até ser destruído e pode te seguir para fora do combate.
 
 | Nome: <<Tempestade de Cacos Virtuais>>
 | Custo/Limitação: 12 de Energia
@@ -116,36 +163,40 @@ Exemplos:
 | Custo/Limitação: 15 de Energia, 1 vez por combate
 | Descrição: Você executa um script de "companheiro". Um drone de combate autônomo é materializado ao seu lado. Ele age no seu turno, tem 20 de Vida, 12 de Defesa, e pode realizar um ataque que causa 6 de dano. Ele dura até ser destruído ou o combate acabar.
 
-| Nome: <<Meteoro Digital>> 
-| Custo/Limitação: 20 Energia 
+| Nome: <<Meteoro Digital>>
+| Custo/Limitação: 20 Energia
 | Descrição: Você chama um fragmento massivo de dados corrompidos dos céus em um ponto a até 30 metros. Inimigos em um raio de 5 metros do impacto sofrem 25 de dano de impacto e ficam Lentos por 1 rodada.
 
-| Nome: <<Santuário Protetor>> 
-| Custo/Limitação: 15 Energia 
+| Nome: <<Santuário Protetor>>
+| Custo/Limitação: 15 Energia
 | Descrição: Você cria uma redoma de 5 metros de raio por 3 rodadas. Inimigos não podem entrar na área e projéteis de fora não a penetram. Aliados podem atirar de dentro para fora.
 
-| Nome: <<Invisibilidade Aprimorada>> 
-| Custo/Limitação: 10 Energia por minuto 
+| Nome: <<Invisibilidade Aprimorada>>
+| Custo/Limitação: 10 Energia por minuto
 | Descrição: Você se torna completamente invisível. Atacar ou usar outra habilidade ofensiva quebra a invisibilidade.
 
-| Nome: <<Maldição da Corrupção>> 
-| Custo/Limitação: 12 Energia 
+| Nome: <<Maldição da Corrupção>>
+| Custo/Limitação: 12 Energia
 | Descrição: Você infecta um alvo com um vírus de dados. O alvo fica Corrompido, sofrendo 5 de dano no início de cada um de seus turnos, e não pode receber cura. O efeito dura 1 minuto ou até ser purificado.
 
-| Nome: <<<Aniquilação de Realidade>>> 
-| Custo/Limitação: 40 Energia 
+| Nome: <<<Aniquilação de Realidade>>>
+| Custo/Limitação: 40 Energia
 | Descrição: Você dispara um raio de pura entropia em um alvo. O ataque causa 50 de dano que ignora qualquer tipo de resistência ou redução de dano. Um alvo derrotado por esta habilidade não pode ser ressuscitado por meios normais.
 
-| Nome: <<<Invulnerabilidade Temporal>>> 
-| Custo/Limitação: 1 vez por dia 
+| Nome: <<<Invulnerabilidade Temporal>>>
+| Custo/Limitação: 1 vez por dia
 | Descrição: Por 2 rodadas completas, você se torna imune a todo e qualquer tipo de dano. Você pode agir normalmente.
 
-| Nome: <<<Distorção Espacial>>> 
-| Custo/Limitação: 30 Energia 
+| Nome: <<<Forjar Guardião Pessoal>>>
+| Custo/Limitação: 30 Energia, requer 1 [Fragmento de Chave de Criptografia]
+| Descrição: Você manifesta uma versão aprimorada e semi-inteligente de seu próprio avatar. O Guardião Pessoal é uma cópia exata de você, com metade de sua Vida e Energia máximas. Ele age de forma independente, no mesmo lugar que você na ordem de iniciativa. Ele pode usar qualquer uma de suas habilidades de rank <Basic> ou inferior, mas seus custos de energia são deduzidos da reserva de energia do próprio Guardião. O Guardião persiste por 5 minutos ou até ser destruído. Apenas um pode ser ativo por vez.
+
+| Nome: <<<Distorção Espacial>>>
+| Custo/Limitação: 30 Energia
 | Descrição: Você abre um portal entre dois pontos que você possa ver (distância máxima de 1km). Você e até 5 aliados podem atravessá-lo instantaneamente.
 
-| Nome: <<<Avatar de Poder>>> 
-| Custo/Limitação: 25 Energia, 1 vez por combate 
+| Nome: <<<Avatar de Poder>>>
+| Custo/Limitação: 25 Energia, 1 vez por combate
 | Descrição: Você entra em um estado de "overclock" perfeito. Por 3 rodadas, seu Dano Base se torna 15, você ganha +20 de Vida temporária e todos os custos de Energia de suas habilidades são reduzidos pela metade.
 
 | Nome: <<<Singularidade Colapsante>>>
@@ -160,16 +211,16 @@ Exemplos:
 | Custo/Limitação: 20 de Energia, 1 vez por sessão
 | Descrição: Você força um prompt de "privilégio elevado" diretamente na "Friend". Você pode fazer uma pergunta direta ao Mestre sobre um segredo do cenário (Como a FriendSoft está envolvida? O que é a IA de verdade? Qual a fraqueza deste inimigo lendário?). O Mestre deve dar uma resposta verdadeira, ainda que enigmática.
 
-| Nome: <<<<Tempestade de Singularidades>>>> 
-| Custo/Limitação: 70 Energia 
+| Nome: <<<<Tempestade de Singularidades>>>>
+| Custo/Limitação: 70 Energia
 | Descrição: Você cria múltiplos buracos negros em miniatura em uma área de 20 metros de raio. Inimigos na área sofrem 40 de dano por rodada e são puxados para o centro da área. A tempestade dura 3 rodadas.
 
-| Nome: <<<<Ressurreição de Firmware>>>> 
-| Custo/Limitação: 100 Energia, 1 vez por semana 
+| Nome: <<<<Ressurreição de Firmware>>>>
+| Custo/Limitação: 100 Energia, 1 vez por semana
 | Descrição: Você reinicia o "firmware" de um aliado que morreu há no máximo 24 horas. Ele retorna à vida com metade de sua Vida e Energia. Este processo é extremamente desgastante e chama muita atenção da "Friend".
 
-| Nome: <<<<Parar o Tempo>>>> 
-| Custo/Limitação: 1 vez por dia 
+| Nome: <<<<Parar o Tempo>>>>
+| Custo/Limitação: 1 vez por dia
 | Descrição: Você envia um comando que trava o fluxo de tempo para todos, exceto você. Você ganha 2 turnos completos consecutivos para agir livremente enquanto o resto do mundo está congelado.
 
 | Nome: <<<<Fissão de Realidade>>>>

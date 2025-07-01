@@ -1,16 +1,16 @@
 local rUtils = {}
 
 local RANKS = {
-    {tokens = 1, name = "Common"},
-    {tokens = 2, name = "Basic"},
-    {tokens = 4, name = "Extra"},
-    {tokens = 8, name = "Unique"},
-    {tokens = 16, name = "Ultimate"},
-    {tokens = 32, name = "Sekai"},
-    {tokens = 64, name = "Stellar"},
-    {tokens = 128, name = "Cosmic"},
-    {tokens = 256, name = "Universal"},
-    {tokens = 512, name = "Multi-Versal"}
+    { tokens = 1,   name = "Common" },
+    { tokens = 2,   name = "Basic" },
+    { tokens = 4,   name = "Extra" },
+    { tokens = 8,   name = "Unique" },
+    { tokens = 16,  name = "Ultimate" },
+    { tokens = 32,  name = "Sekai" },
+    { tokens = 64,  name = "Stellar" },
+    { tokens = 128, name = "Cosmic" },
+    { tokens = 256, name = "Universal" },
+    { tokens = 512, name = "Multi-Versal" }
 }
 
 
@@ -43,6 +43,35 @@ function rUtils.startsWith(String, Start)
     return string.sub(String, 1, string.len(Start)) == Start
 end
 
+function rUtils.isRankup()
+
+end
+
+function rUtils.parseFusion(fusionString)
+    local baseSkill = {}
+    local fusionSkills = {}
+    local first = true
+    for skill, rank in fusionString:gmatch("%[(.-)%s?%((.-)%)%]") do
+        Log.i("SimulacrumCore parse", "parseFusion: skill: " .. skill .. ", rank: " .. rank)
+
+        if first then
+            baseSkill.nome = skill
+            baseSkill.rank = rank
+            first = false
+        else
+            local tempSkill = {
+                nome = skill,
+                rank = rank
+            }
+            table.insert(fusionSkills, tempSkill)
+        end
+    end
+    if not baseSkill then
+        error("Nenhuma habilidade base encontrada na fusão.")
+    end
+    return baseSkill, fusionSkills
+end
+
 -- Função para contar palavras (tokens) em uma string.
 function rUtils.contarTokens(str)
     local count = 0
@@ -71,12 +100,12 @@ function rUtils.rolarRankParaTokens(tokens)
     }
     local weights = {};
     for i = 1, #weightsl do
-        if(tokens >= weightsl[i]) then
+        if (tokens >= weightsl[i]) then
             weights[i] = weightsl[i];
         end;
     end
     for i = #weights, 1, -1 do
-        weights[i] = weights[i] - tokens/10
+        weights[i] = weights[i] - tokens / 10
         if weights[i] < 1 then
             weights[i] = 1
         end
@@ -94,7 +123,60 @@ function rUtils.rolarRankParaTokens(tokens)
             return RANKS[i].name
         end
     end
+end
 
+local function getTextFromNode(ps)
+    if not ps then
+        return ""
+    end
+    local txt = ""
+    for _, p in ipairs(ps) do
+        Log.i("SimulacrumCore", "getTextFromNode: p: " .. NDB.getNodeName(p));
+        local es = NDB.getChildNodes(p)
+        for _, e in ipairs(es) do
+            if e.text ~= nil then
+                Log.i("SimulacrumCore", "getTextFromNode: e: " .. e.text);
+                txt = txt .. e.text;
+            end
+        end
+        txt = txt .. "\n";
+    end
+    if txt == "" then
+        return nil
+    end
+    return txt;
+end
+
+
+function rUtils.getTextFromCharacter(personagem)
+    local nodePromise = personagem:asyncOpenNDB();
+    local node = await(nodePromise);
+    if not node then
+        return "Erro ao abrir o nó do personagem";
+    end
+    if node.abas then
+        Log.i("SimulacrumCore", "getTextFromCharacter: abas found");
+        Log.i("SimulacrumCore", "getTextFromCharacter: abas: " .. NDB.getNodeName(node.abas));
+        local abas = NDB.getChildNodes(node.abas);
+        local final = ""
+        for _, aba in ipairs(abas) do
+            Log.i("SimulacrumCore", "getTextFromCharacter: aba: " .. NDB.getNodeName(aba));
+            local nome = aba.nome_aba
+            Log.i("SimulacrumCore", "getTextFromCharacter: aba: " .. nome);
+            local ps = NDB.getChildNodes(aba.txt);
+            local txt = getTextFromNode(ps);
+            if txt and txt ~= "" then
+                final = final .. "\n\n" .. nome .. ":\n" .. txt;
+            end
+        end
+
+        return final;
+    elseif node.txt then
+        local ps = NDB.getChildNodes(node.txt);
+        return getTextFromNode(ps);
+    else
+        return "Nenhum texto encontrado no personagem";
+    end
 end
 
 return rUtils
