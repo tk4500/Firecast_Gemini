@@ -10,7 +10,7 @@ Regeneração é de 5%/h, dobra durante o sono.
 ● Tokens: O tamanho máximo de Tokens permitidos dentro de um prompt(valor total maximo "por turno/simultâneo").
 O tamanho maximo inicial é 1 Token, mas cada 5 levels o tamanho do prompt máximo aumenta em 1.
 ● Exp: Experiência que o seu personagem vai ganhando pelo caminho.
-Cada nivel que o personagem sobe aumenta o requisito de experiencia para subir o proximo nivel em 50% (100->150->225->338).
+O custo para subir de nível é feito pela seguinte fórmula: 15*(Nivel do Personagem)^2+85*(Nivel do Personagem), onde o nível do personagem é o número de níveis que ele já subiu.
 ● PH: Pontos de Habilidade, necessários para adquirir ou evoluir habilidades existentes.Vai ser detalhado melhor na aba de Habilidades.
 ● Dano Base: Definido Racialmente, o dano base é o quanto de dano seu personagem dá sem Bônus de Habilidades (Definido Racialmente).
 ]]

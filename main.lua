@@ -2,196 +2,15 @@ require("firecast.lua")
 require("internet.lua")
 require("log.lua")
 require("dialogs.lua");
+local fusion = require("core/fusion.lua")
+local geminiCall = require("gemini/geminiCall.lua")
+local sendMessage = require("firecast/sendMessage.lua")
 local habilidade = require("habilidade.lua")
 local aiPrompt = require("aiPrompt.lua")
+local splitContext = require("gemini/splitContext.lua")
 local rUtils = require("token_utils.lua")
-local Json = require("json.lua")
-local GEMINI_API_KEY = "";
-Log.i("SimulacrumCore", "Plugin Simulacrum Core carregado.")
-
-local sendparams = {
-    impersonation = {
-        mode = "character",
-        avatar = "https://blob.firecast.com.br/blobs/FKWRIAWO_3897632/Friend.gif",
-        gender = "masculine",
-        name = "[§B][§K0]F[§K15]ri[§K18]e[§K14]n[§K1]d",
-    },
-    talemarkOptions = {
-        defaultTextStyle = {
-            color = 1
-        },
-        parseCharActions = false,
-        parseCharEmDashSpeech = false,
-        parseCharQuotedSpeech = false,
-        parseHeadings = false,
-        parseHorzLines = false,
-        parseInitialCaps = false,
-        parseOutOfChar = false,
-        trimTexts = false,
-        parseSmileys = false,
-    }
-}
-
-local geminiparams = {
-    impersonation = {
-        mode = "character",
-        avatar = "https://blob.firecast.com.br/blobs/DNGTVLGU_3898181/6853782070044e5401b50d5c.jpg",
-        gender = "masculine",
-        name = "[§B][§K1]Gemini",
-    },
-    talemarkOptions = {
-        defaultTextStyle = {
-            color = 1,
-            bold = true
-        },
-        parseSmileys = false,
-
-    }
-}
-
-
-local function getPlayerFromChat(mensagem)
-    local chat = mensagem.chat;
-    local playerlogin = mensagem.logRec.entity.login
-    local players = chat.room.jogadores;
-    for i = 1, #players do
-        local player = players[i];
-        if player.login == playerlogin then
-            return player;
-        end
-    end
-    return nil; -- Jogador não encontrado
-end
-
-local function geminiCall(prompt, type, chat)
-    local url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" ..
-        GEMINI_API_KEY;
-    local request = Internet.newHTTPRequest();
-    local payload = { contents = { { parts = { { text = prompt } } } } }
-    request.onResponse =
-        function()
-            Log.i("SimulacrumCore", "Resposta recebida do Gemini.");
-            local responseJson = request.responseText;
-            local sucess, resposta = pcall(Json.decode, responseJson);
-            if not sucess then
-                Log.e("SimulacrumCore", "Erro ao processar resposta do Gemini: " .. responseJson);
-                return;
-            end
-            if resposta.candidates[1].content.parts[1].text then
-                local respostaDecodificada = resposta.candidates[1].content.parts[1].text;
-                if type == "gemini" then
-                    local decodedYes = Internet.httpDecode(respostaDecodificada);
-                    if chat.room.me.isMestre then
-                        chat:asyncSendStd(decodedYes, geminiparams);
-                    else
-                        chat:asyncSendStd(" Resposta do Gemini: " .. decodedYes);
-                    end
-                elseif type == "friend" then
-                    local decodedYes = Internet.httpDecode(respostaDecodificada);
-                    if chat.room.me.isMestre then
-                        chat:asyncSendStd(decodedYes, sendparams);
-                    else
-                        chat:asyncSendStd(" Resposta do Friend: " .. decodedYes);
-                    end
-                elseif type == "aiCasting" then
-                    local respostaJson = respostaDecodificada:match("```json\n(.-)\n```") or
-                        respostaDecodificada:match("```(.-)```") or
-                        respostaDecodificada;
-                    local sucesso, efeito = pcall(Json.decode, respostaJson);
-                    if sucesso and efeito.nome and efeito.custo and efeito.descricao then
-                        chat:asyncSendStd(
-                            "|Nome:" ..
-                            efeito.nome .. "\n|Custo: " .. efeito.custo .. "\n|Descrição:" .. efeito.descricao,
-                            sendparams);
-                        Log.i("SimulacrumCore",
-                            "Efeito aplicado: " .. efeito.nome .. " com custo de energia: " .. efeito.custo);
-                        Log.i("SimulacrumCore", "Descrição do efeito: " .. efeito.descricao);
-                    else
-                        chat:asyncSendStd(" Resposta inválida do Gemini. Verifique o formato JSON.",
-                            sendparams);
-                        Log.e("SimulacrumCore", "Resposta inválida do Gemini: " .. respostaJson);
-                    end
-                elseif type == "aiMulticasting" then
-                    local respostaJson = respostaDecodificada:match("```json\n(.-)\n```") or
-                        respostaDecodificada:match("```(.-)```") or
-                        respostaDecodificada;
-                    local sucesso, efeito = pcall(Json.decode, respostaJson);
-                    if not sucesso then
-                        chat:asyncSendStd(" Resposta inválida do Gemini. Verifique o formato JSON.",
-                            sendparams);
-                        Log.e("SimulacrumCore", "Resposta inválida do Gemini: " .. respostaJson);
-                        return;
-                    end
-                    if type(efeito) == "table" and #efeito > 0 then
-                        for i, efeitoItem in ipairs(efeito) do
-                            if efeitoItem.nome and efeitoItem.custo and efeitoItem.descricao then
-                                chat:asyncSendStd(
-                                    "|Nome:" ..
-                                    efeitoItem.nome ..
-                                    "\n|Custo: " .. efeitoItem.custo .. "\n|Descrição:" .. efeitoItem.descricao,
-                                    sendparams);
-                            else
-                                chat:asyncSendStd(" Resposta inválida do Gemini. Verifique o formato JSON.",
-                                    sendparams);
-                                Log.e("SimulacrumCore", "Resposta inválida do Gemini: " .. respostaJson);
-                            end
-                        end
-                    else
-                        chat:asyncSendStd(
-                            " Resposta inválida do Gemini. Esperava uma lista de objetos JSON.", sendparams);
-                        Log.e("SimulacrumCore", "Resposta inválida do Gemini: " .. respostaJson);
-                    end
-                else
-                    Log.e("SimulacrumCore", "Tipo de resposta inválido: " .. type);
-                    return;
-                end
-            else
-                Log.e("SimulacrumCore", "Resposta inválida do Gemini: " .. responseJson);
-                return;
-            end
-        end
-    request.onError = function(errorMsg)
-        if chat.room.me.isMestre then
-            if type == "gemini" then
-                chat:asyncSendStd(" Erro de comunicação com Gemini: " .. errorMsg, geminiparams);
-            else
-                chat:asyncSendStd(" Erro de comunicação com Friend: " .. errorMsg, sendparams);
-            end
-        else
-            chat:asyncSendStd(" Erro de comunicação com Gemini: " .. errorMsg);
-        end
-    end
-
-    request:open("POST", url);
-    request:setRequestHeader("Content-Type", "application/json");
-    request:send(Json.encode(payload));
-end
-local function splitContext(contextoJogador)
-    local tokens = contextoJogador.maxTokens;
-    local prompt = contextoJogador.promptJogador;
-    local energiaGasta = contextoJogador.energiaGasta;
-    local prompts = rUtils.promptSplitter(prompt, tokens);
-    if #prompts == 0 then
-        contextoJogador.chat:asyncSendStd(" Não foi possível dividir o prompt. Verifique o tamanho do prompt.",
-            sendparams);
-        return;
-    end
-    contextoJogador.chat:asyncSendStd(" Prompt dividido em " .. #prompts .. " partes.", sendparams);
-    contextoJogador.promptJogador = "";
-    for i = 1, #prompts do
-        if (contextoJogador.promptJogador == "") then
-            contextoJogador.promptJogador = prompts[i];
-        else
-            contextoJogador.promptJogador = contextoJogador.promptJogador .. " | " .. prompts[i];
-        end
-    end
-    if type(contextoJogador.energiaGasta) == "number" then
-        local energiaDividida = math.floor(energiaGasta / #prompts);
-        contextoJogador.energiaGasta = energiaDividida;
-    end
-    local prompt = aiPrompt.getAiMultiCasting(contextoJogador);
-    geminiCall(prompt, "aiMulticasting", contextoJogador.chat);
-end
+local getPlayerFromChat = require("firecast/getPlayerFromChat.lua")
+Log.i("SimulacrumCore-Main", "Plugin Simulacrum Core carregando.")
 
 Firecast.Messaging.listen(
     "HandleChatCommand",
@@ -200,10 +19,10 @@ Firecast.Messaging.listen(
             local key = message.parameter
             if key and key ~= "" then
                 GEMINI_API_KEY = key;
-                message.chat:writeEx(" Chave Gemini definida com sucesso.", sendparams);
+                message.chat:writeEx(" Chave Gemini definida com sucesso.");
                 Log.i("SimulacrumCore", "Chave Gemini definida: " .. GEMINI_API_KEY);
             else
-                message.chat:writeEx(" Chave Gemini inválida. Use: geminiKey <sua_chave>", sendparams);
+                message.chat:writeEx(" Chave Gemini inválida. Use: geminiKey <sua_chave>");
                 Log.e("SimulacrumCore", "Chave Gemini inválida recebida.");
             end
             message.response = { handled = true };
@@ -214,98 +33,6 @@ Firecast.Messaging.listen(
             habilidade.getSkills(login, message.chat.room);
             message.response = { handled = true };
         end
-
-        if message.command == "skillFusion" then
-            local login = message.parameter;
-            local list, habilidades = habilidade.skillFusion(login, message.chat.room);
-            local listNames = {};
-            for i, skill in ipairs(list) do
-                table.insert(listNames, skill.nome .. " (" .. skill.rank .. ")");
-            end
-
-            Dialogs.choose("Selecione a habilidade base para a fusão:", listNames,
-                function(selected, selectedIndex, selectedText)
-                    if selected and habilidades then
-                        local selectedNode = list[selectedIndex];
-                        local baseSkill = NDB.getAttributes(selectedNode);
-                        table.remove(list, selectedIndex);
-                        table.remove(listNames, selectedIndex);
-                        NDB.deleteNode(selectedNode);
-                        local rank = habilidade.ranks[baseSkill.rank];
-                        Log.i("SimulacrumCore", "Rank da habilidade base: " .. rank);
-                        if not rank then
-                            message.chat:writeEx("Rank inválido: " .. baseSkill.rank);
-                            local skill = NDB.createChildNode(habilidades, baseSkill.nome)
-                            skill.nome = baseSkill.nome
-                            skill.rank = baseSkill.rank
-                            skill.custo = baseSkill.custo
-                            skill.descricao = baseSkill.descricao
-                            return;
-                        end
-                        Dialogs.chooseMultiple("Selecione as habilidades a serem fundidas:",
-                            listNames,
-                            function(selected, selectedIndexes, selectedTexts)
-                                if selected then
-                                    local fusionSkills = {};
-                                    for i, index in ipairs(selectedIndexes) do
-                                        local skill = NDB.getAttributes(list[index]);
-                                        if skill then
-                                            table.insert(fusionSkills, skill);
-                                            NDB.deleteNode(list[index]);
-                                        end
-                                    end
-                                    if #fusionSkills == 0 then
-                                        message.chat:writeEx("Nenhuma habilidade selecionada para fusão.");
-                                        return;
-                                    end
-                                    local ph = 0;
-                                    for k, v in pairs(fusionSkills) do
-                                        local valor = habilidade.ranks[v.rank];
-                                        if valor then
-                                            ph = ph + valor;
-                                        else
-                                            Log.e("SimulacrumCore", "Rank inválido: " .. v.rank);
-                                        end
-                                    end
-                                    message.chat:writeEx("PH".. ph);
-                                    message.chat:writeEx("rank".. rank);
-                                    if ph == 0 then
-                                        message.chat:writeEx("Nenhum PH calculado para as habilidades selecionadas.");
-                                    end
-                                    local isRankUp = false;
-                                    if (ph >= math.random(rank)) then
-                                        isRankUp = true;
-                                    end
-                                    Log.i("SimulacrumCore", "PH calculado: " .. ph);
-                                    Log.i("SimulacrumCore", "Rank Up: " .. tostring(isRankUp));
-                                    Log.i("SimulacrumCore", "Rank: " .. rank);
-                                    local jogador = message.chat.room:findJogador(login);
-                                    local linha = jogador:getEditableLine(1);
-                                    local nivel, raca, classe = linha:match("Level%s*(%d+)%s*|%s*([^|]+)%s*|%s*(.+)");
-
-                                    local contextoJogador = {
-                                        nivel = tonumber(nivel) or 1,
-                                        classe = classe:match("^%s*(.-)%s*$") or "Classe",
-                                        raca = raca:match("^%s*(.-)%s*$") or "Raça",
-                                        rankUp = isRankUp,
-                                        baseSkill = baseSkill,
-                                        fusionSkills = fusionSkills
-                                    }
-                                    local prompt = aiPrompt.getAiFusion(contextoJogador);
-                                    geminiCall(prompt, "aiCasting", message.chat);
-                                    Log.i("SimulacrumCore", "Prompt de fusão enviado");
-                                else
-                                    local skill = NDB.createChildNode(habilidades, baseSkill.nome)
-                                    skill.nome = baseSkill.nome
-                                    skill.rank = baseSkill.rank
-                                    skill.custo = baseSkill.custo
-                                    skill.descricao = baseSkill.descricao
-                                end
-                            end)
-                    end
-                end)
-            message.response = { handled = true };
-        end
     end)
 
 Firecast.Messaging.listen("ChatMessageEx",
@@ -314,129 +41,23 @@ Firecast.Messaging.listen("ChatMessageEx",
             local content = message.logRec.msg.content;
             Log.i("SimulacrumCore", "ChatMessageEx received: " .. content);
             if (rUtils.startsWith(content, "Fusion:")) then
-                local prompt = content:sub(8);
-                local baseSkill, fusionSkills = rUtils.parseFusion(prompt);
-                if not baseSkill or not baseSkill.nome or not baseSkill.rank then
-                    message.chat:asyncSendStd(" Formato inválido. Use: Fusion: [HabilidadeBase(Rank)] [Habilidade1(Rank)] [Habilidade2(Rank)] ...",
-                        sendparams);
-                    return;
-                end
-                Log.i("SimulacrumCore", "Base Skill: " .. baseSkill.nome .. " (Rank: " .. baseSkill.rank .. ")");
-                Log.i("SimulacrumCore", "Fusion Skills: " .. #fusionSkills .. " habilidades selecionadas.");
-                local rank = habilidade.base[baseSkill.rank];
-                if not rank then
-                    message.chat:writeEx("Rank inválido: " .. baseSkill.rank);
-                    return;
-                end
-                if not baseSkill or not fusionSkills or #fusionSkills == 0 then
-                    message.chat:asyncSendStd(
-                        " Formato inválido. Use: Fusion: [HabilidadeBase(Rank)] [Habilidade1(Rank)] [Habilidade2(Rank)] ...",
-                        sendparams);
-                    return;
-                end
-                local skilltable = habilidade.getSkillTables(message.logRec.entity.login, message.chat.room);
-                if not skilltable then
-                    message.chat:asyncSendStd(" Habilidade base não encontrada.", sendparams);
-                    return;
-                end
-                local list = NDB.getChildNodes(skilltable);
-                Log.i("SimulacrumCore", "Habilidades encontradas: " .. #list);
-                for i, skill in ipairs(list) do
-                    local skillatt = NDB.getAttributes(skill);
-                    Log.i("SimulacrumCore", "Habilidade encontrada: " .. skillatt.nome .. " (Rank: " .. skillatt.rank .. ")");
-                    Log.i("SimulacrumCore", "Custo: " .. skillatt.custo .. ", Descrição: " .. skillatt.descricao);
-                    if skill.nome == baseSkill.nome and skill.rank == baseSkill.rank then
-                        baseSkill.custo = skillatt.custo;
-                        baseSkill.descricao = skillatt.descricao;
-                        Log.i("SimulacrumCore",
-                            "Habilidade base encontrada: " .. baseSkill.nome .. " (Rank: " .. baseSkill.rank .. ")");
-                        Log.i("SimulacrumCore", "Custo: " .. baseSkill.custo .. ", Descrição: " .. baseSkill.descricao);
-                        NDB.deleteNode(skill);
-                    end
-                    if #fusionSkills == 1 then
-                        if skill.nome == fusionSkills[1].nome and skill.rank == fusionSkills[1].rank then
-                            fusionSkills[1].custo = skillatt.custo;
-                            fusionSkills[1].descricao = skillatt.descricao;
-                            Log.i("SimulacrumCore",
-                                "Habilidade de fusão encontrada: " .. fusionSkills[1].nome .. " (Rank: " ..
-                                fusionSkills[1].rank .. ")");
-                            Log.i("SimulacrumCore", "Custo: " .. fusionSkills[1].custo .. ", Descrição: " ..
-                                fusionSkills[1].descricao);
-                            NDB.deleteNode(skill);
-                        end
-                    else
-                        for j, fusionSkill in ipairs(fusionSkills) do
-                            if skill.nome == fusionSkill.nome and skill.rank == fusionSkill.rank then
-                                fusionSkill.custo = skillatt.custo;
-                                fusionSkill.descricao = skillatt.descricao;
-                                Log.i("SimulacrumCore",
-                                    "Habilidade de fusão encontrada: " .. fusionSkill.nome .. " (Rank: " ..
-                                    fusionSkill.rank .. ")");
-                                Log.i("SimulacrumCore", "Custo: " .. fusionSkill.custo .. ", Descrição: " ..
-                                    fusionSkill.descricao);
-                                NDB.deleteNode(skill);
-                                break;
-                            end
-                        end
-                        
-                    end
-                    
-                end
-                local ph = 0;
-                for k, v in pairs(fusionSkills) do
-                    local valor = habilidade.ranks[v.rank];
-                    if valor then
-                        ph = ph + valor;
-                    else
-                        Log.e("SimulacrumCore", "Rank inválido: " .. v.rank);
-                    end
-                end
-                if ph == 0 then
-                    message.chat:writeEx("Nenhum PH calculado para as habilidades selecionadas.");
-                end
-                Log.i("SimulacrumCore", "PH calculado: " .. ph);
-                Log.i("SimulacrumCore", "Rank: " .. rank);
-                local isRankUp = false;
-                local teste = math.random(rank);
-                Log.i("SimulacrumCore", "Teste aleatório: " .. teste);
-                if (ph >= teste) then
-                    isRankUp = true;
-                end
-                Log.i("SimulacrumCore", "Rank Up: " .. tostring(isRankUp));
-                local jogador = message.chat.room:findJogador(message.logRec.entity.login);
-                local linha = jogador:getEditableLine(1);
-                local nivel, raca, classe = linha:match("Level%s*(%d+)%s*|%s*([^|]+)%s*|%s*(.+)");
-
-                local contextoJogador = {
-                    nivel = tonumber(nivel) or 1,
-                    classe = classe:match("^%s*(.-)%s*$") or "Classe",
-                    raca = raca:match("^%s*(.-)%s*$") or "Raça",
-                    rankUp = isRankUp,
-                    baseSkill = baseSkill,
-                    fusionSkills = fusionSkills
-                }
-                Log.i("SimulacrumCore", "Contexto do jogador preparado para fusão: " .. Json.encode(contextoJogador));
-                local prompt = aiPrompt.getAiFusion(contextoJogador);
-                geminiCall(prompt, "aiCasting", message.chat);
-                Log.i("SimulacrumCore", "Prompt de fusão enviado");
+                fusion(message);
+                return;
             end
             if (rUtils.startsWith(content, "Friend:")) then
                 local promptEnergia = content:sub(8):match("^%s*(.-)%s*$") -- Remove "Friend:" prefix e espaços
                 local prompt, energiaStr = promptEnergia:match("^(.-)%s*%((.-)%)%s*$")
                 if not prompt or not energiaStr or energiaStr == "" then
-                    message.chat:asyncSendStd(" Formato inválido. Use: Friend: <prompt> (<energia>)", sendparams);
+                    sendMessage(
+                        " Formato inválido. Use: Friend: <prompt> (<energia>)", message.chat, "friend");
                     return;
                 end
                 local energiaGasta = energiaStr;
-                if not energiaGasta then
-                    message.chat:asyncSendStd(" Energia inválida.", sendparams);
-                    return;
-                end
                 local tokensUsados = rUtils.contarTokens(prompt);
                 local jogador = getPlayerFromChat(message);
                 Log.i("SimulacrumCore", "Jogador encontrado: " .. (jogador and jogador.login or "Desconhecido"));
                 if not jogador then
-                    message.chat:asyncSendStd(" Jogador não encontrado no chat.", sendparams);
+                    sendMessage(" Jogador não encontrado no chat.", message.chat, "friend");
                     return;
                 end
                 local tokens = jogador:getBarValue(3);
@@ -444,7 +65,8 @@ Firecast.Messaging.listen("ChatMessageEx",
                 Log.i("SimulacrumCore",
                     "Tokens disponíveis: " .. (tokens or "Desconhecido") .. ", Tokens usados: " .. tokensUsados);
                 if not linha then
-                    message.chat:asyncSendStd(" Não foi possível obter a linha editável do jogador.", sendparams);
+                    sendMessage(
+                        " Não foi possível obter a linha editável do jogador.", message.chat, "friend");
                     return;
                 end
                 Log.i("SimulacrumCore", "Linha editável do jogador: " .. (linha or "Desconhecido"));
@@ -475,11 +97,12 @@ Firecast.Messaging.listen("ChatMessageEx",
                     personagem = personagem
                 };
                 if tokensUsados > tokens then
-                    splitContext(contextoJogador);
-                    return;
+                    local prompt = splitContext(contextoJogador);
+                    geminiCall(prompt, "aiMulticasting", message.chat);
+                else
+                    local prompt = aiPrompt.getAiCasting(contextoJogador);
+                    geminiCall(prompt, "aiCasting", message.chat);
                 end
-                local prompt = aiPrompt.getAiCasting(contextoJogador);
-                geminiCall(prompt, "aiCasting", message.chat);
             end
             if (rUtils.startsWith(content, "Friend ")) then
                 local prompt = content:sub(8):match("^%s*(.-)%s*$") -- Remove "Friend " prefix
@@ -489,10 +112,10 @@ Firecast.Messaging.listen("ChatMessageEx",
                 local key = content:sub(10):match("^%s*(.-)%s*$") -- Remove "geminiKey " prefix
                 if key and key ~= "" then
                     GEMINI_API_KEY = key;
-                    message.chat:asyncSendStd(" Chave Gemini definida com sucesso.", sendparams);
+                    sendMessage(" Chave Gemini definida com sucesso.", message.chat, "gemini");
                     Log.i("SimulacrumCore", "Chave Gemini definida: " .. GEMINI_API_KEY);
                 else
-                    message.chat:asyncSendStd(" Chave Gemini inválida. Use: geminiKey <sua_chave>", sendparams);
+                    sendMessage(" Chave Gemini inválida. Use: geminiKey <sua_chave>", message.chat, "gemini");
                     Log.e("SimulacrumCore", "Chave Gemini inválida recebida.");
                 end
             end
@@ -500,25 +123,7 @@ Firecast.Messaging.listen("ChatMessageEx",
                 local prompt = content:sub(8):match("^%s*(.-)%s*$") -- Remove "gemini " prefix
                 geminiCall(prompt, "gemini", message.chat);
             end
-            if (content == "ficha") then
-                local jogador = getPlayerFromChat(message);
-                if not jogador then
-                    message.chat:asyncSendStd(" Jogador não encontrado no chat.", sendparams);
-                    return;
-                end
-                local personagem = message.chat.room:findBibliotecaItem(jogador.personagemPrincipal);
-                if not personagem then
-                    message.chat:asyncSendStd(" Personagem não encontrado: " .. jogador.personagemPrincipal,
-                        sendparams);
-                    return;
-                end
-                local texto = rUtils.getTextFromCharacter(personagem);
-                if not texto or texto == "" then
-                    message.chat:asyncSendStd(" Ficha do personagem está vazia ou não encontrada.", sendparams);
-                else
-                    message.chat:asyncSendStd(" Ficha do personagem:\n" .. texto, sendparams);
-                end
-            end
         end
     end
 );
+Log.i("SimulacrumCore-Main", "Plugin Simulacrum Core carregado.")

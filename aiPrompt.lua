@@ -1,5 +1,4 @@
 local rules = require("rules.lua");
-local skills = require("habilidade.lua");
 local rUtils = require("token_utils.lua");
 local aiPrompt = {};
 

@@ -131,11 +131,9 @@ local function getTextFromNode(ps)
     end
     local txt = ""
     for _, p in ipairs(ps) do
-        Log.i("SimulacrumCore", "getTextFromNode: p: " .. NDB.getNodeName(p));
         local es = NDB.getChildNodes(p)
         for _, e in ipairs(es) do
             if e.text ~= nil then
-                Log.i("SimulacrumCore", "getTextFromNode: e: " .. e.text);
                 txt = txt .. e.text;
             end
         end
@@ -155,14 +153,10 @@ function rUtils.getTextFromCharacter(personagem)
         return "Erro ao abrir o nó do personagem";
     end
     if node.abas then
-        Log.i("SimulacrumCore", "getTextFromCharacter: abas found");
-        Log.i("SimulacrumCore", "getTextFromCharacter: abas: " .. NDB.getNodeName(node.abas));
         local abas = NDB.getChildNodes(node.abas);
         local final = ""
         for _, aba in ipairs(abas) do
-            Log.i("SimulacrumCore", "getTextFromCharacter: aba: " .. NDB.getNodeName(aba));
             local nome = aba.nome_aba
-            Log.i("SimulacrumCore", "getTextFromCharacter: aba: " .. nome);
             local ps = NDB.getChildNodes(aba.txt);
             local txt = getTextFromNode(ps);
             if txt and txt ~= "" then
