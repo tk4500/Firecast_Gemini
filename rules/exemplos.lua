@@ -12,9 +12,9 @@ Exemplos:
 | Custo/Limitação: 15 energia
 | Descrição: Ao tentar convencer alguém que o que você está falando é plausível, verdadeiro ou correto, você pode pagar 15 de energia para ter um bônus de +5 no teste.
 
-| Nome: Construtos Improvisados
+| Nome: <<Construtos Improvisados>>
 | Custo/Limitação: 20 energia
-| Descrição: Você consegue criar um construto feito de um material aleatório por perto, podendo controlá-lo com sua mente, ele tem 50 de vida e zero energia, mas ele pode utilizar suas habilidades e gastar da sua energia como se fosse você, você consegue ver através de seus olhos e controlá-lo dentro de um raio de 1km, essse construto dura apenas 1 hora.
+| Descrição: Você consegue criar um construto feito de um material aleatório por perto, podendo controlá-lo com sua mente, ele tem 50 de vida e zero energia, mas ele pode utilizar suas habilidades e gastar da sua energia como se fosse você, você consegue ver através de seus olhos e controlá-lo dentro de um raio de 1km.
 
 | Nome: Disparo de Energia
 | Custo/Limitação: 2 de Energia
@@ -64,11 +64,11 @@ Exemplos:
 | Custo/Limitação: 3 por turno
 | Descrição: Você ganha a habilidade de movimentar debaixo do solo na mesma velocidade que conseguiria acima andando sem problemas, em solos duros como feitos de metal, você necessita de gastar sua ação principal para entrar no solo.
 
-| Nome: Surto de Inspiração
+| Nome: <Surto de Inspiração>
 | Custo/Limitação: 30 de Energia
 | Descrição: Você de repente tem uma ideia mirabulosa que fez seu projeto ir de bom a melhor! Enquanto você estiver criando um item, ao gastar 30 de energia você aumenta a qualidade do item em um nível.
 
-| Nome: Surto de Ação
+| Nome: <Surto de Ação>
 | Custo/Limitação: 12 de Energia
 | Descrição: Após utilizar sua ação principal, você pode pagar 12 de energia para fazer a ação novamente, pagando quaisquer custos pagou de novo, essa habilidade não permite você utilizar habilidades que tem um limite de uma vez por um determinado período de tempo.
 
@@ -148,7 +148,7 @@ Exemplos:
 | Custo/Limitação: 18 Energia, requer 1 [Núcleo de Processamento Lógico]
 | Descrição: Você usa um núcleo de processamento para renderizar um companheiro canino robótico ágil e letal. A unidade K-9 tem 40 de Vida, 12 de Defesa e uma velocidade de 15 metros. Ela age em seu turno e pode realizar duas ações:
 Mordida Elétrica: Um ataque corpo a corpo que causa 8 de dano.
-Protocolo de Derrubada: Tenta derrubar um alvo, que deve fazer um teste de Agilidade ou ficará Caído (Prone).
+Protocolo de Derrubada: Tenta derrubar um alvo, que deve fazer um Teste ou ficará Caído (Prone).
 O K-9 persiste até ser destruído e pode te seguir para fora do combate.
 
 | Nome: <<Tempestade de Cacos Virtuais>>

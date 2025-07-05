@@ -68,18 +68,7 @@ function skill.skillFusion(login, mesa)
     return list, habilidades;
 end
 
-function skill.getSkills(login, mesa)
-    local habilidades = skill.getSkillTables(login, mesa);
-    local list = NDB.getChildNodes(habilidades);
-    if #list == 0 then
-        mesa.chat:writeEx("Nenhuma habilidade encontrada para o jogador: " .. login);
-        return;
-    end
-    for _, h in ipairs(list) do
-        mesa.chat:writeEx(" - " .. h.nome .. " (" .. h.rank .. ") - Custo: " .. h.custo .. "\n" .. h.descricao);
-    end
 
-end    
 
 function skill.new(skillData)
     local jogador = skillData.mesa:findJogador(skillData.login);

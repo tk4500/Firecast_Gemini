@@ -1,5 +1,5 @@
-local rUtils = require("gemini/rUtils");
-local aiPrompt = require("gemini/aiPrompt");
+local rUtils = require("token_utils.lua")
+local aiPrompt = require("aiPrompt");
 local sendMessage = require("firecast/sendMessage");
 
 local function splitContext(contextoJogador)

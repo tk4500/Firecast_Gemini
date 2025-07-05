@@ -1,8 +1,8 @@
 require("internet.lua")
 local Json = require("json.lua")
 require("async.lua")
+require("gemini/setGeminiKey.lua")
 
-GEMINI_API_KEY = "";
 local sendRequest = function(prompt)
     local url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" ..
         GEMINI_API_KEY;
