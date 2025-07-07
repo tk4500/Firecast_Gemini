@@ -103,14 +103,15 @@ local function fusion(message)
     local jogador = message.chat.room:findJogador(message.logRec.entity.login);
     local linha = jogador:getEditableLine(1);
     local nivel, raca, classe = linha:match("Level%s*(%d+)%s*|%s*([^|]+)%s*|%s*(.+)");
-
+    local personagem = message.chat.room:findBibliotecaItem(jogador.personagemPrincipal);
     local contextoJogador = {
         nivel = tonumber(nivel) or 1,
         classe = classe:match("^%s*(.-)%s*$") or "Classe",
         raca = raca:match("^%s*(.-)%s*$") or "Raça",
         rankUp = isRankUp,
         baseSkill = baseSkill,
-        fusionSkills = fusionSkills
+        fusionSkills = fusionSkills,
+        personagem = personagem
     }
     local prompt = aiPrompt.getAiFusion(contextoJogador);
     geminiCall(prompt, "aiCasting", message.chat);

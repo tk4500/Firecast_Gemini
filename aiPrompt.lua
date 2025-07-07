@@ -80,7 +80,83 @@ Siga estas diretrizes estritamente:
 
 4.  **Balanceamento**: Em ambos os cenários, use as regras de referência abaixo para garantir que a nova habilidade seja balanceada para seu Rank final.
 -- [FIM DAS DIRETRIZES] --
+-- [REGRAS DE REFERÊNCIA DO JOGO] --
+]] .. rules .. [[
+-- [FIM DAS REGRAS] --
+-- [FICHA COMPLETA DO JOGADOR] --
+ ]] .. rUtils.getTextFromCharacter(contextoJogador.personagem) .. [[
+-- [FIM DA FICHA] --
 
+
+]]
+    return prompt;
+end
+
+function aiPrompt.getAiCrafting(contextoJogador)
+    local prompt = [[
+Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG 'Simulacrum'. Sua função é narrar o resultado de uma sessão de **Experimentação** na Bancada de Criação de um jogador. Você receberá o resultado da criação (SUCESSO, FALHA ou FALHA_CRITICA) e deverá gerar uma resposta JSON correspondente.
+
+Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, sem texto introdutório ou final.
+A estrutura do JSON de resposta deve ser:
+{
+  "sucesso": true,
+  "nomeReceita": "Um nome para a receita/diagrama descoberto. Ex: 'Receita: Poção da Pele de Pedra'.",
+  "nomeItem": "O nome do item criado, incluindo o rank. Ex: '<Escudo de Campo de Força>', '[Poção de Desconexão (Instável)]'.",
+  "rankItem": "O rank do item criado. Ex: 'Common', '<Basic>', '<<Extra>>'.",
+  "tipoItem": "O tipo do item. Ex: 'Consumível (Poção)', 'Equipável (Módulo de Construto)', 'Arma (Espada Longa)'.",
+  "value": "O valor do item gerado em Créditos-S. Exemplo: '1000 Creassiditos-S'.",
+  "efeitoItem": "Uma descrição narrativa do que o item faz, seguida por uma descrição CLARA e QUANTIFICÁVEL do efeito mecânico. Ex: '...concede +10 de Defesa por 2 rodadas'.",
+  "aviso": "Um aviso opcional, como em itens instáveis ou únicos. Se não houver, deixe como string vazia ''. Ex: 'O uso desta poção pode causar uma leve perda temporária de sinal...'"
+}
+
+**Caso ocorra uma FALHA CRÍTICA**, a resposta deve seguir esta estrutura:
+{
+  "sucesso": false,
+  "nomeFalha": "Nome para a falha. Ex: 'Erro de Compilação', 'Sobrecarga Instável'.",
+  "causa": "Uma breve explicação do que deu errado. Ex: 'Instabilidade na combinação de materiais ou falha na execução do prompt.'.",
+  "consequencia": "O que acontece com os materiais. Ex: 'Materiais consumidos corrompidos e inutilizáveis. Nenhuma receita descoberta.'.",
+  "efeitoColateral": "A penalidade para o jogador. Ex: 'Seus sistemas de criação sofreram uma sobrecarga. Você sofre 2 de dano e não poderá realizar ações de Experimentação por 1 rodada.'"
+}
+---
+
+-- [CONTEXTO DO CRAFTING] --
+- **Resultado da Criação:** ]] ..
+    contextoJogador.craftingResult .. [[  *(Valores possíveis: "SUCESSO_CRITICO", "SUCESSO", "FALHA", "FALHA_CRITICA")*
+- **Materiais Usados:**
+]] .. contextoJogador.materials .. [[
+- **Nível do Jogador:** ]] .. contextoJogador.nivel .. [[
+- **Classe do Jogador:** ]] .. contextoJogador.classe .. [[
+- **Raça do Jogador:** ]] .. contextoJogador.raca .. [[
+-- [FIM DO CONTEXTO] --
+
+-- [FICHA COMPLETA DO JOGADOR] --
+**AVALIE AS HABILIDADES E ITENS DO JOGADOR PARA PERSONALIZAR A DESCRIÇÃO DO RESULTADO**
+]] .. rUtils.getTextFromCharacter(contextoJogador.personagem) .. [[
+-- [FIM DA FICHA] --
+
+-- [DIRETRIZES DE CRIAÇÃO DA RESPOSTA] --
+Siga estas diretrizes estritamente:
+
+1.  **SE Resultado da Criação for "SUCESSO" ou "SUCESSO_CRITICO":**
+    *   Gere um JSON de sucesso: { "sucesso": true, "nomeReceita": "...", "nomeItem": "...", ... }
+    *   **Crie um Item Sinérgico:** O item deve ser uma fusão lógica das propriedades dos **Materiais Usados** e temático com a **Classe e Raça** do jogador.
+    *   **Nome:** Crie um nome criativo que reflita a fusão e o Rank do item.
+    *   **Rank:** Determine o Rank do item ('Common', '<Basic>', etc.) com base na raridade dos materiais.
+    *   **Tipo:** Defina o tipo do item (Consumível, Equipamento, Módulo, etc.) com base nos materiais usados, e se for Equipamento, inclua o slot (Ex: 'Equipamento (Mão Principal)').
+    *   **Valor:** Calcule o valor do item em Créditos-S, considerando a raridade e utilidade.
+    *   **Efeito:** A descrição deve ser clara e quantificável.
+    *   **Para "SUCESSO_CRITICO":** O resultado deve ser excepcional. O item deve ter um efeito bônus, ou você pode conceder uma passiva temática, ou considerar a habilidade <Alquimia Automatizada> (se presente) para criar cópias extras.
+    *   **Exemplo:** Se o jogador usa [Coração de Rede Corrompido] + [Placa-Mãe Rara], um sucesso poderia gerar um Drone. Um sucesso crítico poderia gerar um Drone com uma habilidade extra ou gerar cópias adicionais.
+
+2.  **SE Resultado da Criação for "FALHA" ou "FALHA_CRITICA":**
+    *   Gere um JSON de falha: { "sucesso": false, "nomeFalha": "...", "causa": "...", ... }
+    *   **Crie uma Falha Temática:** A descrição da falha (causa, consequencia, efeitoColateral) deve ser criativa e relacionada aos **Materiais Usados**.
+    *   **Para "FALHA":** O resultado deve ser simples, como perda de materiais. Ex: "consequencia": "Os materiais não entraram em sinergia e foram consumidos sem resultado."
+    *   **Para "FALHA_CRITICA":** O resultado deve ser mais dramático. **Verifique a ficha do jogador:** se ele tiver a habilidade <Auto-Correção de Sistema>, a descrição de efeitoColateral deve ser **mitigada** (dano reduzido, penalidade menor). Se ele não tiver, a consequência pode ser mais severa.
+    *   **Exemplo:** Se o jogador usa [Núcleos de Energia Instável] e falha criticamente, a causa pode ser uma "Ruptura de Confinamento". O efeitoColateral poderia ser um dano de energia, que seria reduzido se ele possuísse a passiva de mitigação.
+
+3.  **Balanceamento**: Em todos os cenários, use as regras de referência abaixo para garantir que os efeitos (de sucesso ou falha) sejam balanceados.
+-- [FIM DAS DIRETRIZES] --
 
 -- [REGRAS DE REFERÊNCIA DO JOGO] --
 ]] .. rules .. [[
@@ -130,7 +206,7 @@ Agora, siga estas diretrizes para criar a habilidade:
 
 -- [FIM DAS DIRETRIZES] --
 -- [FICHA COMPLETA DO JOGADOR] --
- ]].. rUtils.getTextFromCharacter(contextoJogador.personagem) .. [[
+ ]] .. rUtils.getTextFromCharacter(contextoJogador.personagem) .. [[
 -- [FIM DA FICHA] --
             Regras da Mesa:
             ]] .. rules .. [[
@@ -202,7 +278,7 @@ Siga estas diretrizes estritamente:
 
 -- [FIM DAS DIRETRIZES] --
 -- [FICHA COMPLETA DO JOGADOR] --
- ]].. rUtils.getTextFromCharacter(contextoJogador.personagem) .. [[
+ ]] .. rUtils.getTextFromCharacter(contextoJogador.personagem) .. [[
 -- [FIM DA FICHA] --
             Regras da Mesa: ]] .. rules .. [[
 
@@ -248,7 +324,7 @@ end
 
 function aiPrompt.friendPrompt(prompt)
     local completePrompt =
-    [[Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG de Realidade Aumentada 'Simulacrum'. Sua função é analisar um 'prompt' de um jogador e gerar uma resposta narrativa e mecânica coerente, balanceada e dentro das regras do sistema
+        [[Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG de Realidade Aumentada 'Simulacrum'. Sua função é analisar um 'prompt' de um jogador e gerar uma resposta narrativa e mecânica coerente, balanceada e dentro das regras do sistema
     aqui estão as regras do sistema: ]] .. rules .. [[
     você deve responder a duvida do jogador de forma clara e objetiva, sem rodeios ou informações desnecessárias.
     prompt do jogador: ]] .. prompt
