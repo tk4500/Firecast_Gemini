@@ -101,8 +101,18 @@ local function fusion(message)
     end
     Log.i("SimulacrumCore-Fusion", "Rank Up: " .. tostring(isRankUp));
     local jogador = message.chat.room:findJogador(message.logRec.entity.login);
+    local syncRate = jogador:getBarValue(3);
     local linha = jogador:getEditableLine(1);
-    local nivel, raca, classe = linha:match("Level%s*(%d+)%s*|%s*([^|]+)%s*|%s*(.+)");
+                local nivel, raca, classe, tokens = 1, "Raça", "Classe", 1
+                if linha then
+                    local lvl, tk, rc, cl = linha:match("(%d+)%s*|%s*(%d+)%s*|%s*([^|]+)%s*|%s*([^|]+)")
+                    if lvl and rc and cl and tk then
+                        nivel = lvl
+                        raca = rc:match("^%s*(.-)%s*$")
+                        classe = cl:match("^%s*(.-)%s*$")
+                        tokens = tonumber(tk) or 1
+                    end
+                end
     local personagem = message.chat.room:findBibliotecaItem(jogador.personagemPrincipal);
     local contextoJogador = {
         nivel = tonumber(nivel) or 1,
@@ -111,7 +121,9 @@ local function fusion(message)
         rankUp = isRankUp,
         baseSkill = baseSkill,
         fusionSkills = fusionSkills,
-        personagem = personagem
+        personagem = personagem,
+        tokens = tokens,
+        syncRate = syncRate,
     }
     local prompt = aiPrompt.getAiFusion(contextoJogador);
     geminiCall(prompt, "aiCasting", message.chat);

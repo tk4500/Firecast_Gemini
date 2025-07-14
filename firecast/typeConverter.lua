@@ -5,8 +5,15 @@ local function aiCastingmsg(efeito)
         Log.e("SimulacrumCore-typeConverter", "Efeito inválido: " .. tostring(efeito));
         return "Efeito inválido. Verifique o formato JSON.";
     end
+    if not efeito.rank or efeito.rank == "" then
+        efeito.rank = "N/A";
+    end
+    if not efeito.tipo or efeito.tipo == "" then
+        efeito.tipo = "N/A";
+    end
     return "|Nome:" ..
         efeito.nome ..
+        "\n|Rank: " .. efeito.rank .. "\n|Tipo: " .. efeito.tipo .. 
         "\n|Custo: " .. efeito.custo .. "\n|Descrição:" .. efeito.descricao
 end
 
@@ -56,6 +63,7 @@ local function typeConverter(text, tipo)
         end
         if efeito.sucesso then
             local mensagem = "Receita: " .. efeito.nomeReceita .. "\n";
+            mensagem = mensagem .. "Materiais necessários: " .. efeito.materiaisReceita .. "\n";
             mensagem = mensagem .. "Item: " .. efeito.nomeItem .. "\n";
             mensagem = mensagem .. "Rank: " .. efeito.rankItem .. "\n";
             mensagem = mensagem .. "Valor: " .. efeito.value .. "\n";

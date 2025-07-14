@@ -9,7 +9,7 @@ local combate = require("rules/combate.lua");
 local racas = require("rules/racas.lua");
 local loja = require("rules/loja.lua");
 local crafting = require("rules/crafting.lua");
-local rules =[[
+Rules = [[
 -- Início das Regras --
 - Regras do Jogo -
 ]] .. cenario .. [[
@@ -25,4 +25,4 @@ local rules =[[
 ]] .. crafting .. [[
 -- Fim das Regras --
 ]]
-return rules;
+return Rules;

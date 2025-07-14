@@ -9,10 +9,10 @@ require("log.lua")
 local function friend(message)
     local content = message.logRec.msg.content;
     local promptEnergia = content:sub(8):match("^%s*(.-)%s*$") -- Remove "Friend:" prefix e espaços
-    local prompt, energiaStr = promptEnergia:match("^(.-)%s*%((.-)%)%s*$")
+    local prompt, energiaStr, rankStr = promptEnergia:match("^(.-)%s*%((.-)%)%s*(%w*)$")
     if not prompt or not energiaStr or energiaStr == "" then
         sendMessage(
-            " Formato inválido. Use: Friend: <prompt> (<energia>)", message.chat, "friend");
+            " Formato inválido. Use: Friend: prompt (custo) <rank>", message.chat, "friend");
         return;
     end
     local energiaGasta = energiaStr;
@@ -23,27 +23,25 @@ local function friend(message)
         sendMessage(" Jogador não encontrado no chat.", message.chat, "friend");
         return;
     end
-    local tokens = jogador:getBarValue(3);
-    local linha = jogador:getEditableLine(1);
-    Log.i("SimulacrumCore-Friend",
-        "Tokens disponíveis: " .. (tokens or "Desconhecido") .. ", Tokens usados: " .. tokensUsados);
-    if not linha then
-        sendMessage(
-            " Não foi possível obter a linha editável do jogador.", message.chat, "friend");
-        return;
-    end
-    Log.i("SimulacrumCore-Friend", "Linha editável do jogador: " .. (linha or "Desconhecido"));
-    local nivel, raca, classe = 1, "Raça", "Classe"
-    if linha then
-        local lvl, rc, cl = linha:match("Level%s*(%d+)%s*|%s*([^|]+)%s*|%s*(.+)")
-        if lvl and rc and cl then
-            nivel = lvl
-            raca = rc:match("^%s*(.-)%s*$")
-            classe = cl:match("^%s*(.-)%s*$")
-        end
-    end
-
+    local syncRate = jogador:getBarValue(3);
+     local linha = jogador:getEditableLine(1);
+                local nivel, raca, classe, tokens = 1, "Raça", "Classe", 1
+                if linha then
+                    local lvl, tk, rc, cl = linha:match("(%d+)%s*|%s*(%d+)%s*|%s*([^|]+)%s*|%s*([^|]+)")
+                    if lvl and rc and cl and tk then
+                        nivel = lvl
+                        raca = rc:match("^%s*(.-)%s*$")
+                        classe = cl:match("^%s*(.-)%s*$")
+                        tokens = tonumber(tk) or 1
+                    end
+                end
     local rank = rUtils.rolarRankParaTokens(tokens);
+    if rankStr then
+        rankStr = rankStr:match("^%s*(.-)%s*$") -- Remove espaços
+    end
+    if rankStr and rankStr ~= "" then
+        rank = rankStr
+    end
     Log.i("SimulacrumCore-Friend", "Rank calculado: " .. rank);
     local personagem = message.chat.room:findBibliotecaItem(jogador.personagemPrincipal);
 
@@ -57,7 +55,8 @@ local function friend(message)
         maxTokens = tokens,
         promptJogador = prompt,
         chat = message.chat,
-        personagem = personagem
+        personagem = personagem,
+        syncRate = syncRate,
     };
     if tokensUsados > tokens then
         local prompt = splitContext(contextoJogador);

@@ -1,3 +1,5 @@
+require("firecast.lua");
+require("dialogs.lua");
 local rUtils = {}
 
 local RANKS = {
@@ -170,6 +172,88 @@ function rUtils.getTextFromCharacter(personagem)
         return getTextFromNode(ps);
     else
         return "Nenhum texto encontrado no personagem";
+    end
+end
+
+local function getTextFromDirectory(directory)
+    if not directory then
+        return nil;
+    end
+    local itens = directory.children;
+    local personagens = {};
+    for _, item in ipairs(itens) do
+        if item.tipo == "personagem" then
+            table.insert(personagens, item);
+        end
+        if item.tipo == "diretorio" then
+            local children = item.children;
+            for _, child in ipairs(children) do
+                if child.tipo == "personagem" then
+                    table.insert(personagens, child);
+                end
+            end
+        end
+    end
+    local final = "";
+    for _, personagem in ipairs(personagens) do
+        local txt = rUtils.getTextFromCharacter(personagem);
+        if txt and txt ~= "" then
+            final = final .. "\n\n" .. personagem.nome .. ":\n" .. txt;
+        end
+    end
+    return final;
+end
+
+function rUtils.setRules(message)
+    require("rules.lua")
+    local mesa = message.chat.room;
+    if not mesa then
+        Log.e("SimulacrumCore-Rules", "Mesa não encontrada no contexto da mensagem.");
+        return;
+    end
+    local itens = mesa.biblioteca.children;
+    local diretorios = {};
+    local diretoriosNomes = {};
+    local selectedItem = nil;
+    for _, item in ipairs(itens) do
+        if item.tipo == "diretorio" then
+            if item.nome == "Sistema" then
+                selectedItem = item;
+                break;
+            end
+            table.insert(diretorios, item);
+            table.insert(diretoriosNomes, item.nome);
+        end
+    end
+    if selectedItem then
+        local rules = getTextFromDirectory(selectedItem);
+        if rules then
+            Rules = rules;
+            Log.i("SimulacrumCore-Rules", "Texto das regras do sistema carregado com sucesso.");
+            return;
+        else
+            Log.e("SimulacrumCore-Rules", "Nenhum texto encontrado no diretório 'Sistema'.");
+            return;
+        end
+    else
+        Dialogs.choose("Selecione o diretório que contém as regras do sistema:", diretoriosNomes,
+            function(selected, selectedIndex, selectedText)
+                if not selectedIndex then
+                    Log.e("SimulacrumCore-Rules", "Nenhum diretório selecionado.");
+                    return;
+                end
+                selectedItem = diretorios[selectedIndex];
+                local rules = getTextFromDirectory(selectedItem);
+                if rules then
+                    Rules = rules;
+                    Log.i("SimulacrumCore-Rules", "Texto das regras do sistema carregado com sucesso.");
+                    return;
+                else
+                    Log.e("SimulacrumCore-Rules", "Nenhum texto encontrado no diretório selecionado: " .. selectedText);
+                    return;
+                end
+            end
+        );
     end
 end
 
