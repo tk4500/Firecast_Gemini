@@ -3,6 +3,7 @@ local sendMessage = require("firecast/sendMessage.lua")
 local getPlayerFromChat = require("firecast/getPlayerFromChat.lua")
 local aiPrompt = require("aiPrompt.lua")
 local geminiCall = require("gemini/geminiCall.lua")
+local sendMessage = require("firecast/sendMessage.lua")
 
 local ranks = {
     "Common",
@@ -20,10 +21,10 @@ local ranks = {
 local function craft(message)
     local content = message.logRec.msg.content;
 local prompt = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
-                local materials, rank, craftingModifier, itemType = prompt:match("%s*(.-)%s*|%s*(.-)%s*|%s*(.-)%s*|%s*(.-)%s*$")
-                if not (materials and rank and craftingModifier) then
+                local materials, rank, craftingModifier = prompt:match("%s*(.-)%s*|%s*(.-)%s*|%s*(.+)$")
+                if not materials then
                     sendMessage(
-                        " Formato inválido. Use: Craft: <materiais> | <rank> | <modificador> | <tipo do item (opcional)>", message.chat, "friend");
+                        " Formato inválido. Use: Craft: <materiais> | (rank )", message.chat, "friend");
                     return;
                 end
                 if not craftingModifier or craftingModifier == "" then
@@ -50,18 +51,26 @@ local prompt = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
                 }
                 local promise = message.chat:asyncRoll("1d20+".. craftingModifier , jogador.nick .. " Crafting Roll", params);
                 local roll, a, b = await(promise);
-                local value = 10 + rank * 2;
-                local craftingResult = "FALHA";
-                if roll >= value then
-                    craftingResult = "SUCESSO";
+                local value = 12 + rank * 3;
+                local craftingResult = "SUCESSO";
+                if roll < value then
+                    craftingResult = "FALHA";
+                    sendMessage(
+                        " Crafting falhou com " .. roll .. ". Valor necessário: " .. value .. ".",
+                        message.chat, "friend");
+                    return;
                 end
                 if roll - craftingModifier == 20 then
-                    craftingResult = "SUCESSO";
-                    rank = rank + 1; -- Increase rank on critical success
+                    craftingResult = "SUCESSO_CRITICO";
                 end
                 if roll - craftingModifier == 1 then
                     craftingResult = "FALHA_CRITICA";
+                    sendMessage(
+                        " Crafting falhou criticamente com " .. roll .. ". Valor necessário: " .. value .. ".",
+                        message.chat, "friend");
+                    return;
                 end
+                rank = rank + 1; -- Increase rank on success
                 Log.i("SimulacrumCore-Main", "Roll: " .. roll)
                 Log.i("SimulacrumCore-Main", "Materials: " .. materials)
                 Log.i("SimulacrumCore-Main", "Crafting Modifier: " .. craftingModifier)
@@ -77,6 +86,7 @@ local prompt = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
                     end
                 end
                 local rankAlvo = ranks[tonumber(rank)] or "N/A";
+                Log.i("SimulacrumCore-Main", "Rank Alvo: " .. rankAlvo)
                 local contextoJogador = {
                     materials = materials,
                     craftingResult = craftingResult,
@@ -86,9 +96,8 @@ local prompt = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
                     personagem = personagem,
                     tokens = tokens,
                     rankAlvo = rankAlvo,
-                    tipo = itemType or "N/A",
                 }
-                local prompt = aiPrompt.getAiCrafting(contextoJogador);
+                local prompt = aiPrompt.getAiRankUp(contextoJogador);
                 geminiCall(prompt, "aiCrafting", message.chat);
 end
 return craft;

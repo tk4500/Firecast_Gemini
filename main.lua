@@ -1,17 +1,22 @@
+require("vhd.lua");
 require("firecast.lua")
 require("internet.lua")
 require("log.lua")
 require("dialogs.lua");
 local getPlayerFromChat = require("firecast/getPlayerFromChat.lua")
+local sendMessage = require("firecast/sendMessage.lua")
+local combat = require("combat/main.lua")
 local craft = require("core/craft.lua")
 local friend = require("core/friend.lua")
 local fusion = require("core/fusion.lua")
 local geminiCall = require("gemini/geminiCall.lua")
 local aiPrompt = require("aiPrompt.lua")
+local Json = require("json.lua")
 local setGeminiKey = require("gemini/setGeminiKey.lua")
 local rUtils = require("token_utils.lua")
+local rankup = require("core/rankup.lua")
 Log.i("SimulacrumCore-Main", "Plugin Simulacrum Core carregando.")
-
+Battleinfo = {}
 Firecast.Messaging.listen(
     "HandleChatCommand",
     function(message)
@@ -22,6 +27,28 @@ Firecast.Messaging.listen(
         end
         if message.command == "getRules" then
             rUtils.setRules(message);
+            message.response = { handled = true };
+        end
+        if message.command == "generateCombat" then
+            local groupid = message.chat.medium.groupId;
+            if Battleinfo[groupid] then
+                sendMessage(" Grupo de combate já existe.", message.chat, "friend");
+                return;
+            end
+            local players = message.chat.participants;
+            for _, player in ipairs(players) do
+                if player.login == message.logRec.entity.login then
+                    table.remove(players, _); -- Remove o próprio jogador da lista de participantes
+                    break;
+                end
+            end
+            Battleinfo[groupid] = {
+                players = message.chat.players,
+                chat = message.chat,
+                started = false,
+            }
+            Log.i("SimulacrumCore-Main", "Grupo de combate criado: " .. groupid);
+
             message.response = { handled = true };
         end
     end)
@@ -42,7 +69,10 @@ Firecast.Messaging.listen("ChatMessageEx",
             if (rUtils.startsWith(content, "Friend ") or rUtils.startsWith(content, "Friend,")) then
                 local prompt = content:gsub("^Friend[, ]+", "") -- Remove "Friend," or "Friend " prefix
                 local jogador = getPlayerFromChat(message);
-                local personagem = message.chat.room:findBibliotecaItem(jogador.personagemPrincipal);
+                local personagem = nil;
+                if jogador.personagemPrincipal then
+                    personagem = message.chat.room:findBibliotecaItem(jogador.personagemPrincipal);
+                end
                 geminiCall(aiPrompt.friendPrompt(prompt, personagem), "friend", message.chat);
             end
             if (rUtils.startsWith(content, "gemini ")) then
@@ -54,11 +84,23 @@ Firecast.Messaging.listen("ChatMessageEx",
                 craft(message);
                 return;
             end
+            if (rUtils.startsWith(content, "Rankup:")) then
+                rankup(message);
+                return;
+            end
             if (rUtils.startsWith(content, "geminiKey ") and message.mine) then
                 local key = content:sub(10):match("^%s*(.-)%s*$") -- Remove "geminiKey " prefix
                 setGeminiKey(key, message.chat);
             end
+
+            if (rUtils.startsWith(content, "Combat:")) then
+                combat(message);
+            end
         end
     end
 );
+
+
+
+
 Log.i("SimulacrumCore-Main", "Plugin Simulacrum Core carregado.")

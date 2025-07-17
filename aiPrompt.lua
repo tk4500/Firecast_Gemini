@@ -2,6 +2,96 @@ require("rules.lua");
 local rUtils = require("token_utils.lua");
 local aiPrompt = {};
 
+
+function aiPrompt.getEncounterPrompt(encounterData)
+    local prompt = [[
+Você é um Mestre de Jogo (GM) auxiliar para o RPG de mesa 'Simulacrum'. Sua tarefa é gerar um encontro de combate aleatório e balanceado em formato JSON, baseado nos dados do grupo, um nível de dificuldade, e um número de inimigos.
+
+Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, sem texto introdutório, final ou markdown. Todas as chaves do JSON devem estar em camelCase.
+
+O JSON de resposta deve ter a seguinte estrutura:
+{
+  "encounterTheme": "Uma descrição curta para o tema do encontro que você criou. Ex: 'Anomalia de Eco Psíquico', 'Enxame de Glitches de Dados Industriais'.",
+  "enemies": [] -- Array de inimigos, cada um com as seguintes chaves:
+    {
+        nome: string,
+        ameaca: number(1-10),
+        nivel: number,
+        xpDrop: number,
+        itemDrop: [] -- Array de itens, cada um com as seguintes chaves:
+            {
+            nome: string,
+            rank: enum("Common", "Basic", "Extra", "Unique", "Ultimate", "Sekai", "Stellar", "Cosmic", "Universal", "MultiVersal"),
+            tipo: enum("Equipamento", "Consumível", "Material", "Módulo", "Refinador", "Diagrama", "Entidade"),
+            preco?: number,
+            slot?: enum("Cabeça", "Peito", "Manto", "Pernas", "Cinto", "Pés", "Mãos(1)", "Mãos(2)", "Anel", "Luva", "Amuleto", "Brinco", "Ferramenta"),
+            craft?: string,
+            custo?: string,
+            descricao: string
+            } --
+        ,
+        desc: string,
+        vidaMax: number,
+        vidaAtual: number,
+        danoBase: number,
+        sync: 0,
+        defesa: number,
+        iniciativa: number,
+        iniciativaMod: number,
+        dificuldadeMod: number,
+        energiaMax: number,
+        energiaAtual: number,
+        principalActions: 0,
+        movementActions: 0,
+        reacaoActions: 0,
+        habilidades: [] -- Array de habilidades, cada uma com as seguintes chaves:
+            {
+                nome: string,
+                rank: enum("Common", "Basic", "Extra", "Unique", "Ultimate", "Sekai", "Stellar", "Cosmic", "Universal", "MultiVersal"),
+                tipo: enum("PRINCIPAL", "MOVIMENTO", "REAÇÃO", "BONUS", "PASSIVA"),
+                custo: string,
+                descricao: string
+                uses?: number
+            } --
+        ,
+    }--
+}
+
+
+
+
+---
+-- [CONTEXTO DO ENCONTRO] --
+1.  **difficulty (1-10)**: ]] .. (encounterData.difficulty or 5) .. [[
+2.  **averagePlayerLevel (APL)**: ]] .. encounterData.apl .. [[
+3.  **numEnemies**: "]] .. encounterData.numEnemies .. [["
+4.  **players**:
+]] .. encounterData.players .. [[
+-- [FIM DO CONTEXTO] --
+
+-- [DIRETRIZES DE GERAÇÃO DE INIMIGOS] --
+1.  **Tema Aleatório**: Primeiro, escolha um tema para o encontro (ex: 'Digital/Glitch', 'Biológico/Corrupção', 'Etéreo/Psíquico', 'Segurança/Corporativo'). O nome, descrição e habilidades dos inimigos devem refletir este tema.
+
+2.  **Balanceamento por Dificuldade Relativa**: A dificuldade (1-10) é um multiplicador de ameaça EM RELAÇÃO ao APL.
+    *   **Cálculo do Nível do Inimigo**: Use a fórmula `Nível Inimigo = APL + ((difficulty - 5) * (APL / 10 + 1))`. Arredonde o resultado. Isso significa que dificuldade 5 cria inimigos no nível do grupo, dificuldade 10 cria inimigos muito mais fortes, e dificuldade 1 cria inimigos mais fracos.
+    *   **Distribuição de Níveis**: Se `numEnemies` for maior que 1, distribua o poder. Você pode criar um "líder" mais forte e "lacaios" mais fracos, mas a média de poder deles deve respeitar o cálculo acima.
+    *   **Rank das Habilidades**: O Rank MÁXIMO das habilidades de um inimigo depende do NÍVEL dele, não da dificuldade. Use a regra do jogo: Nível 15 libera <<Extra>>, Nível 35 libera <<<Unique>>>, Nível 76 libera <<<<Ultimate>>>>.
+
+3.  **Balanceamento de Stats**: Baseie os stats (`vidaMax`, `danoBase`, etc.) no NÍVEL CALCULADO do inimigo, usando as regras de referência do jogo. Inimigos de nível mais alto devem ter stats significativamente maiores.
+
+4.  **Recompensas**: `xpDrop` e `itemDrop` devem escalar com o NÍVEL e o número de inimigos gerados. Um inimigo de nível 40 deve dropar recompensas muito melhores que um de nível 10.
+
+-- [FIM DAS DIRETRIZES] --
+
+-- [REGRAS DE REFERÊNCIA DO JOGO] --
+]] .. Rules .. [[
+-- [FIM DAS REGRAS] --
+
+Agora, com base nas diretrizes e nos dados fornecidos, gere o objeto JSON com "encounterTheme" e o array "enemies" para este encontro aleatório.
+    ]]
+    return prompt
+end
+
 function aiPrompt.getAiFusion(contextoJogador)
     local sacrifice = "";
     for i, skill in ipairs(contextoJogador.fusionSkills) do
@@ -38,8 +128,6 @@ function aiPrompt.getAiFusion(contextoJogador)
         elseif contextoJogador.baseSkill.rank == "Universal" then
             rankFinalNome = "MultiVersal";
         end
-    else
-        -- Se não houve RankUp, mantemos o Rank original da habilidade base.
     end
     Log.i("SimulacrumCore", "getAiFusion: rankFinalNome: " .. rankFinalNome);
 
@@ -50,6 +138,8 @@ Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, sem t
 A estrutura do JSON de resposta deve ser:
 {
   "nome": "Um nome curto e criativo para a habilidade, incluindo seu rank. Ex: '<Escudo Cinético>', '<<Ataque Relâmpago>>'.",
+  "rank": "O Rank da habilidade, que deve ser o mesmo fornecido no contexto. Ex: 'Common', '<Basic>'.",
+  "tipo": "O tipo da habilidade, baseado em sua função. Ex: 'Instantânea', 'Sustentada', 'Permanente'.",
   "custo": "O custo em Energia para ativar esta habilidade.",
   "descricao": "Uma descrição narrativa do que acontece e, o mais importante, uma descrição CLARA e QUANTIFICÁVEL do efeito mecânico. Ex: '...causando 5 de dano adicional', '...concedendo +2 de Defesa por 2 rodadas'."
 }
@@ -92,6 +182,74 @@ Siga estas diretrizes estritamente:
     return prompt;
 end
 
+function aiPrompt.getAiRankUp(contextoJogador)
+    local prompt = [[
+Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG 'Simulacrum'. Sua tarefa é narrar o resultado de um **Aprimoramento de Item**. O jogador combinou um item existente com um 'Refinador' (e talvez outros materiais). O resultado pode ser um `SUCESSO` ou um `SUCESSO_CRITICO`.
+
+Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, usando a estrutura fornecida.
+
+A estrutura do JSON de resposta deve ser:
+{
+  "sucesso": true,
+  "nomeReceita": "Um nome para o processo de aprimoramento. Ex: 'Diagrama de Aprimoramento: Escudo Cinético'.",
+  "materiaisReceita": "Uma string de texto listando os componentes do aprimoramento. Ex: '[<Escudo Rápido>] x1, [<Basic> Weapon Refiner] x1'.",
+  "nomeItem": "O novo nome para o item que reflita sua evolução e seu novo rank. Ex: '<<Escudo Cinético Otimizado>>'.",
+  "rankItem": "O novo rank do item, que será o mesmo fornecido no contexto. Ex: '<<Extra>>'.",
+  "tipoItem": "O tipo do item, que deve ser o mesmo do item original. Ex: 'Equipamento (Módulo)'.",
+  "value": "O novo valor do item em Créditos-S, refletindo seu rank e poder aprimorados.",
+  "efeitoItem": "Uma descrição narrativa e mecânica do novo efeito do item. Deve ser uma versão mais poderosa ou com funcionalidades adicionais em relação ao efeito original.",
+  "aviso": "Um aviso opcional, se o aprimoramento introduziu instabilidade ou uma nova propriedade complexa. Se não houver, deixe como string vazia ''."
+}
+---
+
+-- [CONTEXTO DO APRIMORAMENTO] --
+- **Resultado do Processo:** ]] .. contextoJogador.craftingResult .. [[ *(Valores possíveis: "SUCESSO", "SUCESSO_CRITICO")*
+- **Materiais Usados:** ]] .. contextoJogador.materials .. [[ *(String de texto contendo o item a ser aprimorado e o refinador)*
+- **Rank Alvo do Item (Novo Rank):** "]] .. contextoJogador.rankAlvo .. [[" *(Este é o Rank final que o item DEVE ter)*
+- **Nível do Jogador:** ]] .. contextoJogador.nivel .. [[
+- **Classe do Jogador:** ]] .. contextoJogador.classe .. [[
+- **Raça do Jogador:** ]] .. contextoJogador.raca .. [[
+-- [FIM DO CONTEXTO] --
+
+-- [FICHA COMPLETA DO JOGADOR] --
+**AVALIE AS HABILIDADES E ITENS DO JOGADOR PARA PERSONALIZAR A DESCRIÇÃO DO RESULTADO**
+]] .. rUtils.getTextFromCharacter(contextoJogador.personagem) .. [[
+-- [FIM DA FICHA] --
+
+-- [DIRETRIZES DE CRIAÇÃO DA RESPOSTA] --
+Siga estas diretrizes estritamente para preencher o JSON:
+
+1.  **Identificar o Item Base:** Primeiro, analise a string de **Materiais Usados** para identificar qual é o item principal que está sendo aprimorado (geralmente o item equipável ou de maior rank) e qual é o 'Refinador' ou catalisador.
+
+2.  **Diretrizes Gerais:**
+    *   **`sucesso`**: Deve ser `true`.
+    *   **`nomeReceita`**: Crie um nome como "Diagrama de Aprimoramento: [Nome do Item Base Identificado]".
+    *   **`materiaisReceita`**: Copie a string de texto exata do campo "Materiais Usados".
+    *   **`nomeItem`**: Crie um novo nome para o item base que soe como uma versão superior, incluindo os símbolos do novo rank (`<< >>`, etc.).
+    *   **`rankItem`** e **`tipoItem`**: O `rankItem` DEVE ser o `rankAlvo` fornecido. O `tipoItem` deve ser o mesmo do item base que você identificou.
+    *   **Narrativa:** A descrição narrativa deve focar em como o refinador e os outros materiais transformaram o item base.
+
+3.  **Como Definir o `efeitoItem` e `value`:**
+    *   **SE Resultado for "SUCESSO":**
+        - O novo `efeitoItem` deve ser uma **evolução direta** do efeito do item base, tornando-o mais potente (mais dano, maior duração, etc.), de acordo com o `rankAlvo`.
+        - O `value` deve ser apropriado para o novo `rankAlvo`.
+
+    *   **SE Resultado for "SUCESSO_CRITICO":**
+        - A narrativa deve descrever uma "fusão perfeita" ou "ressonância de dados inesperada" entre os materiais.
+        - O `efeitoItem` deve incluir a **evolução direta do SUCESSO normal E MAIS uma propriedade bônus, única e adicional.**
+        - **Ideias para a Propriedade Bônus:** Um pequeno efeito passivo, uma habilidade ativável "1 vez por combate", uma sinergia com a classe/raça, ou uma pequena melhoria de qualidade de vida.
+        - O `value` do item deve ser **ligeiramente maior** do que seria em um sucesso normal.
+
+4.  **Balanceamento**: Em todos os cenários, use as regras de referência para garantir que o poder do `efeitoItem` seja consistente com outras habilidades e itens do **Rank Alvo**.
+-- [FIM DAS DIRETRIZES] --
+
+-- [REGRAS DE REFERÊNCIA DO JOGO] --
+]] .. Rules .. [[
+-- [FIM DAS REGRAS] --
+]]
+    return prompt
+end
+
 function aiPrompt.getAiCrafting(contextoJogador)
     local prompt = [[
 Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG 'Simulacrum'. Sua função é narrar o resultado de uma sessão de **Experimentação** na Bancada de Criação. Você receberá o resultado da criação (SUCESSO, FALHA ou FALHA_CRITICA) e o Rank final do item, e deverá gerar uma resposta JSON correspondente.
@@ -123,11 +281,12 @@ Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, sem t
 
 -- [CONTEXTO DO CRAFTING] --
 - **Resultado da Criação:** ]] ..
-    contextoJogador.craftingResult .. [[  *(Valores possíveis: "SUCESSO", "FALHA", "FALHA_CRITICA")*
+        contextoJogador.craftingResult .. [[  *(Valores possíveis: "SUCESSO", "FALHA", "FALHA_CRITICA")*
 - **Materiais Usados:** ]] .. contextoJogador.materials .. [[ *(String de texto, ex: '[Material A] x2, [Material B] x1')*
 - **Rank Alvo do Item:** ]] ..
-    (contextoJogador.rankAlvo or "N/A") ..
-    [[ *(Este é o Rank final que o item DEVE ter em caso de sucesso. Se 'N/A', determine você mesmo.)*
+        (contextoJogador.rankAlvo or "N/A") ..
+        [[ *(Este é o Rank final que o item DEVE ter em caso de sucesso. Se 'N/A', determine você mesmo.)*
+- **Tipo do Item:** ]] .. (contextoJogador.tipo or "N/A") .. [[ *(O tipo do item sugerido pelo jogador. Se 'N/A', determine você mesmo, ex: 'Equipamento (Módulo)', 'Consumível (Poção)')*
 - **Nível do Jogador:** ]] .. contextoJogador.nivel .. [[
 - **Classe do Jogador:** ]] .. contextoJogador.classe .. [[
 - **Raça do Jogador:** ]] .. contextoJogador.raca .. [[
@@ -184,7 +343,7 @@ O JSON de resposta deve ter a seguinte estrutura:
 ---
 -- [CONTEXTO DO PROMPT] --
 1.  **ORDEM PRIMÁRIA**: Você DEVE criar uma habilidade do Rank ']] ..
-    contextoJogador.rank .. [['. Este Rank define a complexidade e eficiência da habilidade, e não pode ser alterado.
+        contextoJogador.rank .. [['. Este Rank define a complexidade e eficiência da habilidade, e não pode ser alterado.
 2.  **Contexto do Jogador**:
     *   Nível: ]] .. contextoJogador.nivel .. [[
     *   Classe: "]] .. contextoJogador.classe .. [["
@@ -323,12 +482,16 @@ Siga estas diretrizes estritamente:
 end
 
 function aiPrompt.friendPrompt(prompt, personagem)
-    local completePrompt =
-        [[Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG de Realidade Aumentada 'Simulacrum'. Sua função é analisar um 'prompt' de um jogador e gerar uma resposta narrativa e mecânica coerente, balanceada e dentro das regras do sistema
-    aqui estão as regras do sistema: ]] .. Rules .. [[
+    local completePrompt = [[Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG de Realidade Aumentada 'Simulacrum'. Sua função é analisar um 'prompt' de um jogador e gerar uma resposta narrativa e mecânica coerente, balanceada e dentro das regras do sistema
+    aqui estão as regras do sistema: ]] .. Rules
+    if personagem then
+    completePrompt = completePrompt .. [[
     -- [INÍCIO DO CONTEXTO DO JOGADOR] --
     ]] .. rUtils.getTextFromCharacter(personagem) .. [[
-    -- [FIM DO CONTEXTO] --
+    -- [FIM DO CONTEXTO] --]]
+    end
+
+    completePrompt = completePrompt .. [[
     você deve responder a duvida do jogador de forma clara e objetiva, sem rodeios ou informações desnecessárias.
     prompt do jogador: ]] .. prompt
     return completePrompt;
