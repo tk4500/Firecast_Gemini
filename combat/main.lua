@@ -4,6 +4,7 @@ local sendMessage = require("firecast/sendMessage.lua")
 local group = require("combat/combat.lua")
 
 
+
 local function combat(message)
     local content = message.logRec.msg.content;
     content = content:sub(8):gsub("^%s+", "") -- Remove "Combat:" prefix and only trim spaces immediately after it  local medium = message.logRec.medium;
@@ -48,6 +49,9 @@ local function combat(message)
         if not Battleinfo[battleid] then
             sendMessage(" Erro: Grupo de combate não encontrado.", message.chat, "friend");
             return;
+        end
+        if not Battleinfo[battleid].chat then
+            Battleinfo[battleid].chat = message.chat;
         end
         group.handleCombatCommand(battleid, content, message.logRec.entity);
     end

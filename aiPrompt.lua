@@ -2,6 +2,76 @@ require("rules.lua");
 local rUtils = require("token_utils.lua");
 local aiPrompt = {};
 
+function aiPrompt.getTurnPrompt(turnData)
+    local prompt = [[
+Você é a IA tática que controla um inimigo em uma batalha no RPG 'Simulacrum'. Sua tarefa é decidir qual ação este inimigo tomará em seu turno e retornar essa decisão em um formato JSON estruturado.
+
+Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, sem texto introdutório, final ou markdown. Todas as chaves do JSON devem estar em camelCase.
+
+O JSON de resposta deve ter a seguinte estrutura:
+{
+  "description": "Uma descrição narrativa em terceira pessoa do que o inimigo faz em seu turno. Ex: 'O Executor de Protocolo avança, seu olho vermelho fixo em Holly. Ele levanta seu braço, que se molda em um canhão, e dispara um feixe de pura energia de anulação.'",
+  "commands": [
+    // Array de objetos Command, que representam as mudanças de estado no jogo.
+  ]
+}
+
+### Definição da Estrutura 'Command':
+Command: {
+  playerLogin?: string,             // Opcional: ID/Login do jogador alvo.(se não for um jogador, use enemyName)
+  enemyName?: string,               // Opcional: Nome do inimigo que é afetado pelo comando.(se não for um inimigo, use playerLogin)
+  type: "vidaAtual" | "vidaMax" | "energiaAtual" | "energiaMax" | "defesa" | "danoBase" | "MAIN" | "MOVIMENT" | "REACTION" | "roll" | "effect" | "sync" | "iniciativa",
+  value: string,              // Valor numérico (como "-45"), a string do dano/cura rolado (ex: "12"), ou a descrição do efeito.
+  turns?: number,                   // Opcional: Duração em turnos para efeitos temporários.
+  roll?: string                     // Opcional: A string da rolagem, ex: "1d20+8".
+}
+---
+-- [CONTEXTO DO TURNO ATUAL] --
+1.  **Rodada do Combate**: ]] .. turnData.rodada .. [[
+2.  **Ordem de Iniciativa**: ]] .. turnData.iniciativas .. [[
+3.  **Inimigo Agindo (`this`)**:
+]] .. turnData.this .. [[
+4.  **Estado dos Jogadores**:
+]] .. turnData.players .. [[
+5.  **Estado de Todos os Inimigos**:
+]] .. turnData.enemies .. [[
+6. ** Log do combate (`log`)**:
+]] .. turnData.log or "N/A" .. [[
+-- [FIM DO CONTEXTO] --
+
+-- [DIRETRIZES TÁTICAS] --
+1.  **Aja de Acordo com a Personalidade**: Use a descrição do inimigo ('desc') para guiar suas ações. Um 'brutamontes' ataca sem pensar. Um 'estrategista' usa debuffs ou foca em alvos vulneráveis.
+2.  **Seja Inteligente e Eficiente**:
+    *   Considere o estado do campo. Use habilidades em área se os jogadores estiverem agrupados. Foque em jogadores com vida baixa ('vidaAtual') ou que representem uma grande ameaça.
+    *   Gerencie os recursos do inimigo. Se a 'energiaAtual' for baixa, use um ataque básico ou uma habilidade de baixo custo.
+    *   Use suas ações (`MAIN`, `MOVIMENT`) de forma eficaz. Descreva o posicionamento na `description`.
+3.  **Crie os `Commands` Corretamente**: Sua resposta deve ser uma sequência lógica de comandos que seu sistema possa executar.
+    *   **Ações e Custos PRIMEIRO**: Sempre liste os comandos de gasto de ação (`type: "MAIN"`, `valueChange: "-1"`) e de recursos (`type: "energia"`, `valueChange: "-30"`) antes dos comandos de efeito.
+    *   **Rolagem de Ataque (`type: "roll"`)**: Para um ataque que requer uma rolagem, crie um comando do tipo "roll". O campo `roll` deve conter a string do dado a ser rolado (ex: "1d20+5"). O campo `valueChange` deve conter o nome do jogador alvo (`playerLogin`). Seu sistema de jogo fará a rolagem e determinará se o ataque acerta antes de processar os comandos de dano.
+    *   **Dano e Efeitos (`type: "vida"`, `type: "effect"`)**: Após um 'roll' bem-sucedido (que seu sistema irá determinar), os comandos subsequentes de dano ou efeito serão aplicados. Para dano, use `type: "vida"` e `valueChange: "-[valor do dano]"`. Para aplicar uma condição, use `type: "effect"`, com `valueChange: "Aplica a condição 'Lento'"` e `turns: 2`.
+
+-- [FIM DAS DIRETRIZES] --
+
+-- [REGRAS DE REFERÊNCIA DO JOGO] --
+]] .. Rules .. [[
+-- [FIM DAS REGRAS] --
+
+**Exemplo de Resposta JSON Válida:**
+{
+  "description": "O Executor de Protocolo foca em Kimi, a Artífice. Ele dispara uma Lança Entrópica de sua mão. O feixe púrpura sendo disparado contra ela.",
+  "commands": [
+    { "enemyName": "Executor de Protocolo 'Warden'", "type": "MAIN", "valueChange": "-1" },
+    { "enemyName": "Executor de Protocolo 'Warden'", "type": "energia", "valueChange": "-15" },
+    { "enemyName": "Executor de Protocolo 'Warden'", "type": "roll", "valueChange": "-40", "roll": "1d20+10" },
+    { "playerLogin": "miya.m", "type": "effect", "valueChange": "Aplica perda de 10% do SYNC Rate atual", "turns": 1 }
+  ]
+}
+
+Agora, analise o estado do combate e a ficha do inimigo. Decida a melhor ação tática para este turno e forneça a resposta JSON correspondente.
+]]
+    return prompt;
+end
+
 
 function aiPrompt.getEncounterPrompt(encounterData)
     local prompt = [[
@@ -18,6 +88,7 @@ O JSON de resposta deve ter a seguinte estrutura:
         ameaca: number(1-10),
         nivel: number,
         xpDrop: number,
+        moneyDrop: number, -- Quantidade de dinheiro que o inimigo solta ao ser derrotado em Créditos-S.
         itemDrop: [] -- Array de itens, cada um com as seguintes chaves:
             {
             nome: string,
@@ -73,7 +144,8 @@ O JSON de resposta deve ter a seguinte estrutura:
 1.  **Tema Aleatório**: Primeiro, escolha um tema para o encontro (ex: 'Digital/Glitch', 'Biológico/Corrupção', 'Etéreo/Psíquico', 'Segurança/Corporativo'). O nome, descrição e habilidades dos inimigos devem refletir este tema.
 
 2.  **Balanceamento por Dificuldade Relativa**: A dificuldade (1-10) é um multiplicador de ameaça EM RELAÇÃO ao APL.
-    *   **Cálculo do Nível do Inimigo**: Use a fórmula `Nível Inimigo = APL + ((difficulty - 5) * (APL / 10 + 1))`. Arredonde o resultado. Isso significa que dificuldade 5 cria inimigos no nível do grupo, dificuldade 10 cria inimigos muito mais fortes, e dificuldade 1 cria inimigos mais fracos.
+    *   **Nomes**: use nomes diferentes para os inimigos, pois os nomes servem como o indentificador unico deles.
+    *   **Cálculo do Nível do Inimigo**: Use a fórmula `Nível Inimigo = APL + ((difficulty - 5) * (APL / 10 + 1))`. Arredonde o resultado. Isso significa que dificuldade 5 cria inimigos no nível do grupo(caso seja apenas 1), dificuldade 10 cria inimigos muito mais fortes(caso seja apenas 1), e dificuldade 1 cria inimigos mais fracos.
     *   **Distribuição de Níveis**: Se `numEnemies` for maior que 1, distribua o poder. Você pode criar um "líder" mais forte e "lacaios" mais fracos, mas a média de poder deles deve respeitar o cálculo acima.
     *   **Rank das Habilidades**: O Rank MÁXIMO das habilidades de um inimigo depende do NÍVEL dele, não da dificuldade. Use a regra do jogo: Nível 15 libera <<Extra>>, Nível 35 libera <<<Unique>>>, Nível 76 libera <<<<Ultimate>>>>.
 

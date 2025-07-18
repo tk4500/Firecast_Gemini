@@ -1,6 +1,7 @@
 local sendMessage = require("firecast/sendMessage");
 local iniciativa = require("combat/iniciativa");
 local turnAction = require("combat/turnAction");
+local calcInitiative = require("combat/calcInitiative");
 
 local function start(battleid)
             if not Battleinfo[battleid].started then
@@ -26,19 +27,18 @@ local function start(battleid)
             end
             table.insert(iniciativas, {nome = enemy.nome, iniciativa = enemy.iniciativa});
         end
-        table.sort(iniciativas, function(a, b)
-            return a.iniciativa > b.iniciativa;
-        end);
-        Battleinfo[battleid].iniciativas = iniciativas;
-        Battleinfo[battleid].turno = 1;
+        
         Battleinfo[battleid].rodada = 1;
+        Battleinfo[battleid].turno = 0;
+        Battleinfo[battleid].iniciativas = iniciativas;
+        calcInitiative(battleid, iniciativas);
         if Battleinfo[battleid].iniciativas[1].nome then
-            sendMessage("Turno de".. Battleinfo[battleid].iniciativas[1].nome, Battleinfo[battleid].chat, "friend");
+            sendMessage("Turno de ".. Battleinfo[battleid].iniciativas[1].nome, Battleinfo[battleid].chat, "friend");
             turnAction(Battleinfo[battleid].iniciativas[1].nome, battleid);
         else
             for i, player in ipairs(Battleinfo[battleid].players) do
                 if player.login == Battleinfo[battleid].iniciativas[1].login then
-                    sendMessage("Turno de".. player.nick, Battleinfo[battleid].chat, "friend");
+                    sendMessage("Turno de ".. player.nick, Battleinfo[battleid].chat, "friend");
                     break;
                 end
             end

@@ -1,8 +1,9 @@
 local sendMessage = require("firecast/sendMessage.lua")
 local enemyGenerator = require("combat/enemyGenerator.lua")
 local rUtils = require("token_utils.lua")
-local iniciativa = require("combat/iniciativa.lua")
+local init = require("combat/iniciativa.lua")
 local start = require("combat/start.lua")
+local commandParser = require("combat/commandParser.lua")
 local group = {}
 
 group.handleCombatCommand = function(battleid, content, entity)
@@ -13,16 +14,13 @@ group.handleCombatCommand = function(battleid, content, entity)
     if content == "close" then
         sendMessage(" Grupo de combate fechado.", Battleinfo[battleid].chat, "friend");
         Battleinfo[battleid] = nil;
-    end
-
-    if (rUtils.startsWith(content, "generate")) then
+    elseif (rUtils.startsWith(content, "generate")) then
         if Battleinfo[battleid].started then
             sendMessage(" Combate já iniciado.", Battleinfo[battleid].chat, "friend");
             return;
         end
         enemyGenerator(battleid, content);
-    end
-    if (rUtils.startsWith(content, "initiative")) then
+    elseif (rUtils.startsWith(content, "initiative")) then
         if not Battleinfo[battleid].started then
             sendMessage(" Combate não iniciado. Use 'Combat: generate <Nível>' primeiro.", Battleinfo[battleid].chat,
                 "friend");
@@ -34,7 +32,7 @@ group.handleCombatCommand = function(battleid, content, entity)
             Battleinfo[battleid].chat, "friend");
             return;
         end
-        local iniciativa = iniciativa(Battleinfo[battleid].chat, entity.nick, modificador);
+        local iniciativa = init(Battleinfo[battleid].chat, entity.nick, modificador);
         if not iniciativa then
             sendMessage(" Erro ao rolar iniciativa.", Battleinfo[battleid].chat, "friend");
             return;
@@ -46,9 +44,15 @@ group.handleCombatCommand = function(battleid, content, entity)
                 break;
             end
         end
-    end
-    if (rUtils.startsWith(content, "start")) then
+    elseif (rUtils.startsWith(content, "start")) then
         start(battleid);
+    else
+        local tipo, entidade, valor, valoraux = content:match("^%s*(.-)%s*|%s*(.-)%s*|%s*(.-)%s*|%s*(.-)%s*$")
+        if tipo and entidade and valor and valoraux then
+            commandParser(battleid, tipo, entidade, valor, valoraux, entity);
+        else
+            sendMessage(" Comando inválido. Formato esperado: Combat: tipo|entidade|valor|valoraux", Battleinfo[battleid].chat, "friend")
+        end
     end
 end
 

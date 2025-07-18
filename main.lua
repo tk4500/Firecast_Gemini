@@ -15,6 +15,7 @@ local Json = require("json.lua")
 local setGeminiKey = require("gemini/setGeminiKey.lua")
 local rUtils = require("token_utils.lua")
 local rankup = require("core/rankup.lua")
+local turnEnd = require("combat/turnEnd.lua")
 Log.i("SimulacrumCore-Main", "Plugin Simulacrum Core carregando.")
 Battleinfo = {}
 Firecast.Messaging.listen(
@@ -37,18 +38,32 @@ Firecast.Messaging.listen(
             end
             local players = message.chat.participants;
             for _, player in ipairs(players) do
-                if player.login == message.logRec.entity.login then
+                if player.login == message.room.me.login then
                     table.remove(players, _); -- Remove o próprio jogador da lista de participantes
                     break;
                 end
             end
             Battleinfo[groupid] = {
-                players = message.chat.players,
+                players = players,
                 chat = message.chat,
                 started = false,
             }
             Log.i("SimulacrumCore-Main", "Grupo de combate criado: " .. groupid);
 
+            message.response = { handled = true };
+        end
+        if message.command == "dump" then
+            local groupid = message.chat.medium.groupId;
+            local battleinfo = Battleinfo[groupid];
+            if not Battleinfo[groupid] then
+                sendMessage(" Grupo de combate não existe.", message.chat, "friend");
+                return;
+            end
+            battleinfo.chat =  nil; -- Remove o chat do dump para evitar circular references
+            local dump = Json.encode(battleinfo);
+            message.chat:writeEx("Grupo de combate dump: " .. tostring(dump),{
+                parseSmileys = false,
+            });
             message.response = { handled = true };
         end
     end)
@@ -96,11 +111,21 @@ Firecast.Messaging.listen("ChatMessageEx",
             if (rUtils.startsWith(content, "Combat:")) then
                 combat(message);
             end
+            if content == ">>" then
+                local battleid = message.chat.medium.groupId;
+                if Battleinfo[battleid] then
+                    turnEnd(message, battleid);
+                end
+            end
         end
     end
 );
 
-
+local chat = Firecast.findMesa(251479).chat;
+if chat then
+    Log.i("SimulacrumCore-Main", "Resetando chat para evitar problemas de cache.");
+    chat:enviarMensagem("/reset");
+end
 
 
 Log.i("SimulacrumCore-Main", "Plugin Simulacrum Core carregado.")

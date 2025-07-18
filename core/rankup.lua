@@ -1,5 +1,4 @@
 require("log.lua")
-local sendMessage = require("firecast/sendMessage.lua")
 local getPlayerFromChat = require("firecast/getPlayerFromChat.lua")
 local aiPrompt = require("aiPrompt.lua")
 local geminiCall = require("gemini/geminiCall.lua")
@@ -20,8 +19,8 @@ local ranks = {
 
 local function craft(message)
     local content = message.logRec.msg.content;
-local prompt = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
-                local materials, rank, craftingModifier = prompt:match("%s*(.-)%s*|%s*(.-)%s*|%s*(.+)$")
+local mat = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
+                local materials, rank, craftingModifier = mat:match("%s*(.-)%s*|%s*(.-)%s*|%s*(.+)$")
                 if not materials then
                     sendMessage(
                         " Formato inválido. Use: Craft: <materiais> | (rank )", message.chat, "friend");
@@ -54,7 +53,6 @@ local prompt = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
                 local value = 12 + rank * 3;
                 local craftingResult = "SUCESSO";
                 if roll < value then
-                    craftingResult = "FALHA";
                     sendMessage(
                         " Crafting falhou com " .. roll .. ". Valor necessário: " .. value .. ".",
                         message.chat, "friend");
@@ -64,7 +62,6 @@ local prompt = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
                     craftingResult = "SUCESSO_CRITICO";
                 end
                 if roll - craftingModifier == 1 then
-                    craftingResult = "FALHA_CRITICA";
                     sendMessage(
                         " Crafting falhou criticamente com " .. roll .. ". Valor necessário: " .. value .. ".",
                         message.chat, "friend");

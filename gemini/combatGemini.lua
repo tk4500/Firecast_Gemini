@@ -1,5 +1,4 @@
 local sendRequest = require("gemini/sendRequest");
-local typeConverter = require("firecast/typeConverter");
 local Json = require("json.lua");
 require("log.lua")
 local sendMessage = require("firecast/sendMessage");
@@ -18,24 +17,25 @@ local function combatCall(prompt, chat)
     if not sucesso then
         Log.e("SimulacrumCore-CombatCall", "Erro ao enviar pedido de combate: " .. response);
         sendMessage(" Erro ao enviar pedido de combate: " .. response, chat, "friend");
-        return;
+        return combatCall(prompt, chat);
     end
     local sucess, resposta = pcall(Json.decode, response);
     if not sucess then
         Log.e("SimulacrumCore-CombatCall", "Erro ao processar resposta do Combat: " .. response);
-        return;
+        return combatCall(prompt, chat);
     end
     if resposta.candidates[1].content.parts[1].text then
                 local respostaDecodificada = resposta.candidates[1].content.parts[1].text;
-                local sucesso, finalJson = decodeJson(respostaDecodificada);
-        if not sucesso then
+                local work, finalJson = decodeJson(respostaDecodificada);
+        if not work then
             Log.e("SimulacrumCore-CombatCall", "Erro ao decodificar JSON de resposta do Combat: " .. respostaDecodificada);
-            return;
+            return combatCall(prompt, chat);
         end
+        Log.i("SimulacrumCore-CombatCall", "Resposta decodificada do Combat: " .. tostring(Json.encode(finalJson)));
         return finalJson;
     else
         Log.e("SimulacrumCore-CombatCall", "Resposta inválida do Combat: " .. response);
-        return;
+        return combatCall(prompt, chat);
     end
 end
 

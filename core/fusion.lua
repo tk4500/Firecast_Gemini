@@ -7,8 +7,8 @@ local aiPrompt = require("aiPrompt.lua")
 local geminiCall = require("gemini/geminiCall.lua")
 local function fusion(message)
     local content = message.logRec.msg.content;
-    local prompt = content:sub(8);
-    local baseSkill, fusionSkills = rUtils.parseFusion(prompt);
+    local fus = content:sub(8);
+    local baseSkill, fusionSkills = rUtils.parseFusion(fus);
     if not baseSkill or not baseSkill.nome or not baseSkill.rank then
         sendMessage(
             " Formato inválido. Use: Fusion: [HabilidadeBase(Rank)] [Habilidade1(Rank)] [Habilidade2(Rank)] ...",
