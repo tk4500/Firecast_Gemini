@@ -133,24 +133,6 @@ local function enemyCommand(command, enemy, battleid)
             return
         end
         enemy.danoBase = enemy.danoBase + command.value;
-    elseif command.type == "MAIN" then
-        if not tonumber(command.value) then
-            Log.e("SimulacrumCore-Commands", "Valor inválido para comando: " .. command.value)
-            return
-        end
-        enemy.principalActions = enemy.principalActions + command.value;
-    elseif command.type == "MOVIMENT" then
-        if not tonumber(command.value) then
-            Log.e("SimulacrumCore-Commands", "Valor inválido para comando: " .. command.value)
-            return
-        end
-        enemy.movementActions = enemy.movementActions + command.value;
-    elseif command.type == "REACTION" then
-        if not tonumber(command.value) then
-            Log.e("SimulacrumCore-Commands", "Valor inválido para comando: " .. command.value)
-            return
-        end
-        enemy.reacaoActions = enemy.reacaoActions + command.value;
     elseif command.type == "roll" then
         local promise = chat:asyncRoll(command.roll, "valor mudado:" .. command.value, {
             impersonation = {
@@ -264,12 +246,6 @@ local function playerCommand(command, player, battleid)
         sendMessage("Defesa de" .. jogador.nick .. " modificada em " .. command.value, chat, "friend");
     elseif command.type == "danoBase" then
         sendMessage("danoBase de" .. jogador.nick .. " modificada em " .. command.value, chat, "friend");
-    elseif command.type == "MAIN" then
-        sendMessage("Ação principal de " .. jogador.nick .. " executada", chat, "friend");
-    elseif command.type == "MOVIMENT" then
-        sendMessage("Ação de movimento de " .. jogador.nick .. " executada", chat, "friend");
-    elseif command.type == "REACTION" then
-        sendMessage("Reação de " .. jogador.nick .. " executada", chat, "friend");
     elseif command.type == "roll" then
         sendMessage(jogador.nick .. ", role" .. command.roll .. " com valor: " .. command.value, chat, "friend");
     elseif command.type == "effect" then

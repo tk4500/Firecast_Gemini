@@ -26,9 +26,6 @@ local function turnAction(npcName, battleid)
     local npc = nil;
     for i, enemy in ipairs(battleinfo.enemies) do
         if enemy.nome == npcName then
-            enemy.principalActions = 0;
-            enemy.movementActions = 0;
-            enemy.reacaoActions = 0;
             if enemy.effects then
                 for j, effect in ipairs(enemy.effects) do
                     if effect.turns then

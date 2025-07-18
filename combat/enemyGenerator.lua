@@ -2,6 +2,7 @@ require("log.lua")
 local aiPrompt = require("aiPrompt.lua")
 local combatCall = require("gemini/combatGemini.lua")
 local sendMessage = require("firecast/sendMessage.lua")
+local rUtils = require("token_utils.lua")
 
 local function getPlayer(chat, login)
     local mesa = chat.room;
@@ -10,6 +11,15 @@ local function getPlayer(chat, login)
         return nil;
     end
     return player;
+end
+
+
+local function getEnemylvl(apl, difficulty, numEnemies, numPlayers)
+    local allLvls = apl * numPlayers;
+    local multiplier = 1 + (difficulty - 3) * (apl / 10);
+    local allEnemyLvl = allLvls * multiplier;
+    local enemyLvl = allEnemyLvl / numEnemies;
+    return math.max(1, math.floor(enemyLvl+0.5));
 end
 
 local function enemyGenerator(battleid, content)
@@ -40,6 +50,7 @@ local function enemyGenerator(battleid, content)
         numEnemies = 5;
     end
     encouterData.numEnemies = numEnemies;
+    local numPlayers = #battleinfo.players;
     local players = "";
     local totalLevels = 0;
     for i, player in ipairs(battleinfo.players) do
@@ -66,13 +77,22 @@ local function enemyGenerator(battleid, content)
                 tokens or 1
             )
         end
+        local ficha = rUtils.getTextFromCharacter(jogador);
+        if ficha then
+            players = players .. string.format('- { ficha: "%s" }\n', ficha);
+        else
+            players = players .. '- { ficha: "N/A" }\n';
+        end
     end
     encouterData.players = players;
     local apl = math.floor(totalLevels / #battleinfo.players);
     if apl < 1 then
         apl = 1;
     end
+    local enemylvl = getEnemylvl(apl, nivelAmeaca, numEnemies, numPlayers);
     encouterData.apl = apl;
+    encouterData.numPlayers = numPlayers;
+    encouterData.enemyLvl = enemylvl;
     local prompt = aiPrompt.getEncounterPrompt(encouterData);
     local encounter = combatCall(prompt, battleinfo.chat);
     Log.i("SimulacrumCore-EnemyGenerator", "Inimigos gerados: " .. #encounter.enemies);

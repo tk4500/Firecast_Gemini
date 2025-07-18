@@ -10,7 +10,7 @@ Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, sem t
 
 O JSON de resposta deve ter a seguinte estrutura:
 {
-  "description": "Uma descrição narrativa em terceira pessoa do que o inimigo faz em seu turno. Ex: 'O Executor de Protocolo avança, seu olho vermelho fixo em Holly. Ele levanta seu braço, que se molda em um canhão, e dispara um feixe de pura energia de anulação.'",
+  "description": "Uma descrição narrativa em terceira pessoa do que o inimigo faz em seu turno. Ex: 'O Executor de Protocolo avança, seu olho vermelho fixo em Holly. Ele levanta seu braço, que se molda em um canhão, e dispara um feixe de pura energia de anulação.'", //não utilize o login do jogador aqui, caso fale do jogador, utilize apenas o nick dele.
   "commands": [
     // Array de objetos Command, que representam as mudanças de estado no jogo.
   ]
@@ -20,10 +20,10 @@ O JSON de resposta deve ter a seguinte estrutura:
 Command: {
   playerLogin?: string,             // Opcional: ID/Login do jogador alvo.(se não for um jogador, use enemyName)
   enemyName?: string,               // Opcional: Nome do inimigo que é afetado pelo comando.(se não for um inimigo, use playerLogin)
-  type: "vidaAtual" | "vidaMax" | "energiaAtual" | "energiaMax" | "defesa" | "danoBase" | "MAIN" | "MOVIMENT" | "REACTION" | "roll" | "effect" | "sync" | "iniciativa",
-  value: string,              // Valor numérico (como "-45"), a string do dano/cura rolado (ex: "12"), ou a descrição do efeito.
-  turns?: number,                   // Opcional: Duração em turnos para efeitos temporários.
-  roll?: string                     // Opcional: A string da rolagem, ex: "1d20+8".
+  type: "vidaAtual" | "vidaMax" | "energiaAtual" | "energiaMax" | "defesa" | "danoBase" | "roll" | "effect" | "sync" | "iniciativa",
+  value: string,              // caso type for roll, o valor é o dano caso seja um ataque e o mesmo acerte, e é a dificuldade caso seja um teste. caso type for effect, o valor é a descrição do efeito (ex: "Aplica a condição 'Lento'"). caso contrario o valor é o valor a ser alterado em int (ex: "-10" para dano, +"5" para defesa).
+  turns?: number,                   // Opcional: Duração em turnos para efeitos.
+  roll?: string                     // Opcional: A string da rolagem, caso type seja roll. ex: "1d20+8".
 }
 ---
 -- [CONTEXTO DO TURNO ATUAL] --
@@ -60,7 +60,6 @@ Command: {
 {
   "description": "O Executor de Protocolo foca em Kimi, a Artífice. Ele dispara uma Lança Entrópica de sua mão. O feixe púrpura sendo disparado contra ela.",
   "commands": [
-    { "enemyName": "Executor de Protocolo 'Warden'", "type": "MAIN", "valueChange": "-1" },
     { "enemyName": "Executor de Protocolo 'Warden'", "type": "energia", "valueChange": "-15" },
     { "enemyName": "Executor de Protocolo 'Warden'", "type": "roll", "valueChange": "-40", "roll": "1d20+10" },
     { "playerLogin": "miya.m", "type": "effect", "valueChange": "Aplica perda de 10% do SYNC Rate atual", "turns": 1 }
@@ -112,9 +111,6 @@ O JSON de resposta deve ter a seguinte estrutura:
         dificuldadeMod: number,
         energiaMax: number,
         energiaAtual: number,
-        principalActions: 0,
-        movementActions: 0,
-        reacaoActions: 0,
         habilidades: [] -- Array de habilidades, cada uma com as seguintes chaves:
             {
                 nome: string,
@@ -133,25 +129,36 @@ O JSON de resposta deve ter a seguinte estrutura:
 
 ---
 -- [CONTEXTO DO ENCONTRO] --
-1.  **difficulty (1-10)**: ]] .. (encounterData.difficulty or 5) .. [[
-2.  **averagePlayerLevel (APL)**: ]] .. encounterData.apl .. [[
-3.  **numEnemies**: "]] .. encounterData.numEnemies .. [["
-4.  **players**:
+1.  **Dificuldade (1-10)**: ]] .. (encounterData.difficulty or 5) .. [[
+2.  **Media de Nivel dos jogadores (APL)**: ]] .. encounterData.apl .. [[
+3.  **Numero de Inimigos**: "]] .. encounterData.numEnemies .. [["
+4.  **Numero de Jogadores**: "]] .. encounterData.numPlayers .. [["
+5.  **Nivel do Inimigo**: ]] .. encounterData.enemyLvl .. [[
+6.  **Players**:
 ]] .. encounterData.players .. [[
 -- [FIM DO CONTEXTO] --
 
 -- [DIRETRIZES DE GERAÇÃO DE INIMIGOS] --
-1.  **Tema Aleatório**: Primeiro, escolha um tema para o encontro (ex: 'Digital/Glitch', 'Biológico/Corrupção', 'Etéreo/Psíquico', 'Segurança/Corporativo'). O nome, descrição e habilidades dos inimigos devem refletir este tema.
+1.  **Defina o Tema e os Nomes**:
+    *   Primeiro, escolha um tema criativo para o encontro (ex: 'Digital/Glitch', 'Biológico/Corrupção', 'Etéreo/Psíquico', 'Segurança/Corporativo'). Preencha a chave "encounterTheme".
+    *   Crie nomes **únicos** para cada inimigo. Se houver lacaios, use nomes como "Construto de Ferrugem Alfa" e "Construto de Ferrugem Beta".
 
-2.  **Balanceamento por Dificuldade Relativa**: A dificuldade (1-10) é um multiplicador de ameaça EM RELAÇÃO ao APL.
-    *   **Nomes**: use nomes diferentes para os inimigos, pois os nomes servem como o indentificador unico deles.
-    *   **Cálculo do Nível do Inimigo**: Use a fórmula `Nível Inimigo = APL + ((difficulty - 5) * (APL / 10 + 1))`. Arredonde o resultado. Isso significa que dificuldade 5 cria inimigos no nível do grupo(caso seja apenas 1), dificuldade 10 cria inimigos muito mais fortes(caso seja apenas 1), e dificuldade 1 cria inimigos mais fracos.
-    *   **Distribuição de Níveis**: Se `numEnemies` for maior que 1, distribua o poder. Você pode criar um "líder" mais forte e "lacaios" mais fracos, mas a média de poder deles deve respeitar o cálculo acima.
-    *   **Rank das Habilidades**: O Rank MÁXIMO das habilidades de um inimigo depende do NÍVEL dele, não da dificuldade. Use a regra do jogo: Nível 15 libera <<Extra>>, Nível 35 libera <<<Unique>>>, Nível 76 libera <<<<Ultimate>>>>.
+2.  **Determine os Níveis**:
+    *   O nível de poder médio para os inimigos neste encontro foi pré-calculado para você como **Nível do Inimigo**.
+    *   Distribua este poder. Se houver vários inimigos (`numEnemies`), você pode criar um "líder" com um nível ligeiramente acima do **Nível do Inimigo** e "lacaios" com um nível ligeiramente abaixo, mas a média geral deve ser próxima ao valor fornecido.
 
-3.  **Balanceamento de Stats**: Baseie os stats (`vidaMax`, `danoBase`, etc.) no NÍVEL CALCULADO do inimigo, usando as regras de referência do jogo. Inimigos de nível mais alto devem ter stats significativamente maiores.
+3.  **Calcule os Stats**:
+    *   Baseie TODOS os stats (`vidaMax`, `danoBase`, `defesa`, etc.) no **nível individual** que você definiu para cada inimigo. Use as regras de referência do jogo (`Rules`) para garantir o balanceamento.
+    *   Inimigos de nível mais alto devem ser significativamente mais resistentes e perigosos.
 
-4.  **Recompensas**: `xpDrop` e `itemDrop` devem escalar com o NÍVEL e o número de inimigos gerados. Um inimigo de nível 40 deve dropar recompensas muito melhores que um de nível 10.
+4.  **Crie as Habilidades**:
+    *   Desenvolva 2-4 habilidades temáticas para cada inimigo.
+    *   O Rank MÁXIMO das habilidades de um inimigo depende estritamente do **NÍVEL** dele (Nível 15 para `<<Extra>>`, 35 para `<<<Unique>>>`, 76 para `<<<<Ultimate>>>>`).
+    *   Inimigos líderes ou de 'ameaca' mais alta devem ter habilidades mais complexas e sinérgicas.
+
+5.  **Defina as Recompensas**:
+    *   **`xpDrop` e `moneyDrop`**: As recompensas devem escalar com o **NÍVEL** e a **AMEAÇA** de cada inimigo. Um boss de nível 40 deve conceder muito mais XP e Créditos-S do que um lacaio de nível 10.
+    *   **`itemDrop`**: O loot deve ser temático com o inimigo. Inimigos mais fortes (nível e ameaça mais altos) têm uma chance maior de dropar itens de Ranks mais elevados (`<<Extra>>` ou `<<<Unique>>>`) ou `Diagramas`.
 
 -- [FIM DAS DIRETRIZES] --
 
