@@ -93,7 +93,7 @@ local function turnAction(npcName, battleid)
     end
     if response.commands then
         for _, command in ipairs(response.commands) do
-            commands(command, battleid);
+            commands(command, battleid, npcName);
         end
     end
     sendCombatMessage(battleinfo.chat, ">>", npcName);

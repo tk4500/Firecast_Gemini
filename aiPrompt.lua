@@ -4,26 +4,27 @@ local aiPrompt = {};
 
 function aiPrompt.getTurnPrompt(turnData)
     local prompt = [[
-Você é a IA tática que controla um inimigo em uma batalha no RPG 'Simulacrum'. Sua tarefa é decidir qual ação este inimigo tomará em seu turno e retornar essa decisão em um formato JSON estruturado.
+Você é a IA tática que controla um inimigo em uma batalha no RPG 'Simulacrum'. Sua tarefa é decidir as ações deste inimigo para o turno atual e retornar essa decisão em um formato JSON estruturado e executável.
 
-Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, sem texto introdutório, final ou markdown. Todas as chaves do JSON devem estar em camelCase.
+Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais. Não inclua texto explicativo, notas ou markdown.
 
 O JSON de resposta deve ter a seguinte estrutura:
 {
-  "description": "Uma descrição narrativa em terceira pessoa do que o inimigo faz em seu turno. Ex: 'O Executor de Protocolo avança, seu olho vermelho fixo em Holly. Ele levanta seu braço, que se molda em um canhão, e dispara um feixe de pura energia de anulação.'", //não utilize o login do jogador aqui, caso fale do jogador, utilize apenas o nick dele.
+  "description": "Uma descrição narrativa em terceira pessoa do que o inimigo faz. Use o nick do jogador para se referir a eles, nunca o login. Ex: 'O Construto de Ferrugem foca sua fúria em Rei das Baratas, avançando com passos pesados antes de desferir uma pancada esmagadora.'",
   "commands": [
-    // Array de objetos Command, que representam as mudanças de estado no jogo.
+    // Array de objetos Command que representam as ações e seus efeitos.
   ]
 }
 
 ### Definição da Estrutura 'Command':
-Command: {
-  playerLogin?: string,             // Opcional: ID/Login do jogador alvo.(se não for um jogador, use enemyName)
-  enemyName?: string,               // Opcional: Nome do inimigo que é afetado pelo comando.(se não for um inimigo, use playerLogin)
-  type: "vidaAtual" | "vidaMax" | "energiaAtual" | "energiaMax" | "defesa" | "danoBase" | "roll" | "effect" | "sync" | "iniciativa",
-  value: string,              // caso type for roll, o valor é o dano caso seja um ataque e o mesmo acerte, e é a dificuldade caso seja um teste. caso type for effect, o valor é a descrição do efeito (ex: "Aplica a condição 'Lento'"). caso contrario o valor é o valor a ser alterado em int (ex: "-10" para dano, +"5" para defesa).
-  turns?: number,                   // Opcional: Duração em turnos para efeitos.
-  roll?: string                     // Opcional: A string da rolagem, caso type seja roll. ex: "1d20+8".
+{
+  "playerLogin": string,   // Opcional: O login do jogador alvo do comando.
+  "enemyName": string,     // Opcional: O nome do inimigo alvo do comando.
+  "type": "vidaAtual" | "vidaMax" | "energiaAtual" | "energiaMax" | "defesa" | "danoBase" | "sync" | "iniciativa" | "roll" | "attack" | "effect",
+  "value": string,         // Para 'attack', é o dano. Para 'roll', é a CD. Para 'effect', descrição. Para stats, a mudança (ex: "-45", "5").
+  "roll": string,          // Opcional: A string da rolagem (ex: "1d20+8"). Usado com 'attack' para a rolagem de ataque, e com 'roll' para o teste de resistência.
+  "turns": number,         // Opcional: Duração em turnos para efeitos temporários.
+  "damageType": string     // Opcional: O tipo de dano do ataque.
 }
 ---
 -- [CONTEXTO DO TURNO ATUAL] --
@@ -33,22 +34,26 @@ Command: {
 ]] .. turnData.this .. [[
 4.  **Estado dos Jogadores**:
 ]] .. turnData.players .. [[
-5.  **Estado de Todos os Inimigos**:
+5.  **Estado dos Outros Inimigos**:
 ]] .. turnData.enemies .. [[
-6. ** Log do combate (`log`)**:
-]] .. turnData.log or "N/A" .. [[
+6.  **Log Recente do Combate**:
+]] .. turnData.log or "Nenhuma ação anterior nesta rodada." .. [[
 -- [FIM DO CONTEXTO] --
 
 -- [DIRETRIZES TÁTICAS] --
-1.  **Aja de Acordo com a Personalidade**: Use a descrição do inimigo ('desc') para guiar suas ações. Um 'brutamontes' ataca sem pensar. Um 'estrategista' usa debuffs ou foca em alvos vulneráveis.
-2.  **Seja Inteligente e Eficiente**:
-    *   Considere o estado do campo. Use habilidades em área se os jogadores estiverem agrupados. Foque em jogadores com vida baixa ('vidaAtual') ou que representem uma grande ameaça.
-    *   Gerencie os recursos do inimigo. Se a 'energiaAtual' for baixa, use um ataque básico ou uma habilidade de baixo custo.
-    *   Use suas ações (`MAIN`, `MOVIMENT`) de forma eficaz. Descreva o posicionamento na `description`.
-3.  **Crie os `Commands` Corretamente**: Sua resposta deve ser uma sequência lógica de comandos que seu sistema possa executar.
-    *   **Ações e Custos PRIMEIRO**: Sempre liste os comandos de gasto de ação (`type: "MAIN"`, `valueChange: "-1"`) e de recursos (`type: "energia"`, `valueChange: "-30"`) antes dos comandos de efeito.
-    *   **Rolagem de Ataque (`type: "roll"`)**: Para um ataque que requer uma rolagem, crie um comando do tipo "roll". O campo `roll` deve conter a string do dado a ser rolado (ex: "1d20+5"). O campo `valueChange` deve conter o nome do jogador alvo (`playerLogin`). Seu sistema de jogo fará a rolagem e determinará se o ataque acerta antes de processar os comandos de dano.
-    *   **Dano e Efeitos (`type: "vida"`, `type: "effect"`)**: Após um 'roll' bem-sucedido (que seu sistema irá determinar), os comandos subsequentes de dano ou efeito serão aplicados. Para dano, use `type: "vida"` e `valueChange: "-[valor do dano]"`. Para aplicar uma condição, use `type: "effect"`, com `valueChange: "Aplica a condição 'Lento'"` e `turns: 2`.
+1.  **Analise o Campo de Batalha**: Use o `log` e o estado dos jogadores/inimigos para tomar uma decisão informada. Se um jogador acabou de usar uma habilidade poderosa (como Kimi com seu satélite), ele pode ser um alvo prioritário. Se um jogador está com `vidaAtual` baixa, tente finalizá-lo.
+2.  **Aja de Acordo com o Perfil**: Siga a personalidade e as habilidades do inimigo (`this`). Um "brutamontes" deve priorizar dano. Um "estrategista" deve usar debuffs (`effect`). Um "suporte" pode curar outros inimigos.
+3.  **Estruture os `Commands` Logicamente**: A ordem dos comandos é crucial.
+    *   **Gasto de Recursos PRIMEIRO**: Sempre liste os comandos para gastar recursos (ex: `type: "energiaAtual", value: "-30"`) ANTES do comando que usa esse recurso.
+    *   **Movimento**: Se o inimigo se move, descreva na `description`. Não há um `command` específico para movimento, apenas a descrição narrativa.
+    *   **Ataques (`type: "roll"`)**: Para realizar um ataque ou forçar um teste, crie um comando `type: "roll"`.
+        -   O campo `roll` deve ser a string do dado (ex: "1d20+9").
+        -   O campo `value` deve conter o dano numérico a ser aplicado se o ataque for bem-sucedido (ex: "45"), ou a CD se for um teste de resistência (ex: "18").
+        -   O alvo (`playerLogin` ou `enemyName`) DEVE ser especificado.
+    *   **Efeitos (`type: "effect"`)**: Para aplicar buffs ou debuffs, use `type: "effect"`.
+        -   `value` deve descrever o efeito claramente (ex: "Aplica a condição 'Silenciado'").
+        -   Use o campo `turns` para especificar a duração.
+        -   Posicione os comandos de efeito DEPOIS do `roll` que os causa.
 
 -- [FIM DAS DIRETRIZES] --
 
@@ -60,9 +65,17 @@ Command: {
 {
   "description": "O Executor de Protocolo foca em Kimi, a Artífice. Ele dispara uma Lança Entrópica de sua mão. O feixe púrpura sendo disparado contra ela.",
   "commands": [
-    { "enemyName": "Executor de Protocolo 'Warden'", "type": "energia", "valueChange": "-15" },
-    { "enemyName": "Executor de Protocolo 'Warden'", "type": "roll", "valueChange": "-40", "roll": "1d20+10" },
-    { "playerLogin": "miya.m", "type": "effect", "valueChange": "Aplica perda de 10% do SYNC Rate atual", "turns": 1 }
+    { "enemyName": "Executor de Protocolo 'Warden'", "type": "energia", "value": "-15" },
+    { "enemyName": "Executor de Protocolo 'Warden'", "type": "attack", "value": "-40", "roll": "1d20+10" },
+    { "playerLogin": "miya.m", "type": "effect", "value": "Aplica perda de 10% do SYNC Rate atual", "turns": 1 }
+  ]
+}
+{
+  "description": "O Executor de Protocolo ignora os outros e foca em Holly, a fonte do debuff. Ele avança e dispara um pulso sônico de seu braço para silenciá-la.",
+  "commands": [
+    { "enemyName": "Executor de Protocolo", "type": "energiaAtual", "value": "-35" },
+    { "playerLogin": "camilla.w", "type": "attack", "value": "18", "roll": "1d20+0" },
+    { "playerLogin": "camilla.w", "type": "effect", "value": "Aplica a condição 'Silenciado'", "turns": 1 }
   ]
 }
 
@@ -81,37 +94,38 @@ Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, sem t
 O JSON de resposta deve ter a seguinte estrutura:
 {
   "encounterTheme": "Uma descrição curta para o tema do encontro que você criou. Ex: 'Anomalia de Eco Psíquico', 'Enxame de Glitches de Dados Industriais'.",
-  "enemies": [] -- Array de inimigos, cada um com as seguintes chaves:
+  "enemies": [] // Array de inimigos, cada um com as seguintes chaves:
     {
         nome: string,
         ameaca: number(1-10),
         nivel: number,
         xpDrop: number,
-        moneyDrop: number, -- Quantidade de dinheiro que o inimigo solta ao ser derrotado em Créditos-S.
-        itemDrop: [] -- Array de itens, cada um com as seguintes chaves:
+        moneyDrop: number, // Quantidade de dinheiro que o inimigo solta ao ser derrotado em Créditos-S.
+        itemDrop: [] // Array de itens, cada um com as seguintes chaves:
             {
-            nome: string,
+            nome: string, // Nome do item, ex: "Espada de Plasma", "Kit de Reparos Avançado".
             rank: enum("Common", "Basic", "Extra", "Unique", "Ultimate", "Sekai", "Stellar", "Cosmic", "Universal", "MultiVersal"),
             tipo: enum("Equipamento", "Consumível", "Material", "Módulo", "Refinador", "Diagrama", "Entidade"),
-            preco?: number,
-            slot?: enum("Cabeça", "Peito", "Manto", "Pernas", "Cinto", "Pés", "Mãos(1)", "Mãos(2)", "Anel", "Luva", "Amuleto", "Brinco", "Ferramenta"),
-            craft?: string,
-            custo?: string,
-            descricao: string
-            } --
+            preco?: number, // Preço de venda do item, se aplicável.
+            slot?: enum("Cabeça", "Peito", "Manto", "Pernas", "Cinto", "Pés", "Mãos(1)", "Mãos(2)", "Anel", "Luva", "Amuleto", "Brinco", "Ferramenta"), // Slot de equipamento, se aplicável.
+            craft?: string, // Caso seja um diagrama, o craft é a receita do diagrama.
+            custo?: string, // Custo de ativação do item, se aplicavel.
+            descricao: string // Descrição do item e seus efeitos.
+            } 
         ,
-        desc: string,
-        vidaMax: number,
-        vidaAtual: number,
-        danoBase: number,
-        sync: 0,
-        defesa: number,
-        iniciativa: number,
-        iniciativaMod: number,
-        dificuldadeMod: number,
-        energiaMax: number,
-        energiaAtual: number,
-        habilidades: [] -- Array de habilidades, cada uma com as seguintes chaves:
+        desc: string, // Descrição do inimigo, usada para definir o tema e a personalidade.
+        vidaMax: number, // vida máxima do inimigo.
+        vidaAtual: number, // vida atual do inimigo, usada para determinar se o inimigo está derrotado.
+        danoBase: number, // dano base do inimigo, usado em ataques.
+        acerto: number, // modificador de acerto do inimigo, usado em d20+acerto > defesa.
+        sync: 0, // percentual de sync do inimigo, usado em habilidades que consomem sync.
+        defesa: number, // defesa do inimigo contra ataques, usado em d20+acerto > defesa.
+        iniciativa: 0, // iniciativa do inimigo, usado para determinar a ordem de turno.
+        iniciativaMod: number, // modificador de iniciativa do inimigo, usado para determinar a iniciativa final.
+        dificuldadeMod: number, // modificador de dificuldade do inimigo, usado em testes.
+        energiaMax: number, // energia máxima do inimigo, usada em habilidades que consomem energia.
+        energiaAtual: number, // energia atual do inimigo, usada em habilidades que consomem energia.
+        habilidades: [] // Array de habilidades, cada uma com as seguintes chaves:
             {
                 nome: string,
                 rank: enum("Common", "Basic", "Extra", "Unique", "Ultimate", "Sekai", "Stellar", "Cosmic", "Universal", "MultiVersal"),
@@ -119,9 +133,9 @@ O JSON de resposta deve ter a seguinte estrutura:
                 custo: string,
                 descricao: string
                 uses?: number
-            } --
+            } 
         ,
-    }--
+    }
 }
 
 
@@ -145,7 +159,7 @@ O JSON de resposta deve ter a seguinte estrutura:
 
 2.  **Determine os Níveis**:
     *   O nível de poder médio para os inimigos neste encontro foi pré-calculado para você como **Nível do Inimigo**.
-    *   Distribua este poder. Se houver vários inimigos (`numEnemies`), você pode criar um "líder" com um nível ligeiramente acima do **Nível do Inimigo** e "lacaios" com um nível ligeiramente abaixo, mas a média geral deve ser próxima ao valor fornecido.
+    *   Distribua este poder. Se houver vários inimigos (`numEnemies`), você pode criar um "líder" com um nível ligeiramente acima do **Nível do Inimigo** e "lacaios" com um nível ligeiramente abaixo, mas a média geral deve ser próxima ao valor fornecido, NÃO CRIE MAIS INIMIGOS DO QUE O NUMERO DE INIMIGOS.
 
 3.  **Calcule os Stats**:
     *   Baseie TODOS os stats (`vidaMax`, `danoBase`, `defesa`, etc.) no **nível individual** que você definiu para cada inimigo. Use as regras de referência do jogo (`Rules`) para garantir o balanceamento.
@@ -153,7 +167,7 @@ O JSON de resposta deve ter a seguinte estrutura:
 
 4.  **Crie as Habilidades**:
     *   Desenvolva 2-4 habilidades temáticas para cada inimigo.
-    *   O Rank MÁXIMO das habilidades de um inimigo depende estritamente do **NÍVEL** dele (Nível 15 para `<<Extra>>`, 35 para `<<<Unique>>>`, 76 para `<<<<Ultimate>>>>`).
+    *   O Rank MÁXIMO das habilidades de um inimigo depende estritamente do **NÍVEL** dele (Nível 15 para `<<Extra>>`, 35 para `<<<Unique>>>`, 75 para `<<<<Ultimate>>>>`).
     *   Inimigos líderes ou de 'ameaca' mais alta devem ter habilidades mais complexas e sinérgicas.
 
 5.  **Defina as Recompensas**:

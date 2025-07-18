@@ -19,7 +19,7 @@ local function getEnemylvl(apl, difficulty, numEnemies, numPlayers)
     local multiplier = 1 + (difficulty - 3) * (apl / 10);
     local allEnemyLvl = allLvls * multiplier;
     local enemyLvl = allEnemyLvl / numEnemies;
-    return math.max(1, math.floor(enemyLvl+0.5));
+    return math.max(1, math.floor(enemyLvl + 0.5));
 end
 
 local function enemyGenerator(battleid, content)
@@ -76,12 +76,15 @@ local function enemyGenerator(battleid, content)
                 raca or "N/A",
                 tokens or 1
             )
-        end
-        local ficha = rUtils.getTextFromCharacter(jogador);
-        if ficha then
-            players = players .. string.format('- { ficha: "%s" }\n', ficha);
-        else
-            players = players .. '- { ficha: "N/A" }\n';
+            if jogador.personagemPrincipal then
+                local personagem = battleinfo.chat.room:findBibliotecaItem(jogador.personagemPrincipal);
+                local ficha = rUtils.getTextFromCharacter(personagem);
+                if ficha then
+                    players = players .. string.format('- { ficha: "%s" }\n', ficha);
+                else
+                    players = players .. '- { ficha: "N/A" }\n';
+                end
+            end
         end
     end
     encouterData.players = players;

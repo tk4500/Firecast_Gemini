@@ -4,23 +4,23 @@ local calcInitiative = require("combat/calcInitiative.lua");
 local killEnemy = require("combat/killEnemy.lua");
 local killAlly = require("combat/killAlly.lua");
 local function printblocks(chat, blocks, name, color)
-    if blocks < 0 or blocks > 100 then
+    if blocks < 0 then
         Log.e("SimulacrumCore-Commands", "Número de blocos inválido: " .. blocks);
         return;
     end
     local main = math.floor(blocks / 10);
     local blockString = string.rep("█", main);
     if main ~= 10 then
-    local dif = blocks - main*10;
-    if dif == 0 then
-        blockString = blockString .. "░";
-    elseif dif <=5 then
-        blockString = blockString .. "▒";
-    else
-        blockString = blockString .. "▓";
-    end
-    local emptyString = string.rep("░", 9 - main);
-    blockString = blockString .. emptyString;
+        local dif = blocks - main * 10;
+        if dif == 0 then
+            blockString = blockString .. "░";
+        elseif dif <= 5 then
+            blockString = blockString .. "▒";
+        else
+            blockString = blockString .. "▓";
+        end
+        local emptyString = string.rep("░", 9 - main);
+        blockString = blockString .. emptyString;
     end
     local message = "[§K" .. color .. "]" .. blockString;
     sendCombatMessage(chat, message, name);
@@ -58,8 +58,47 @@ local function getPlayer(chat, login)
     return player;
 end
 
-local function enemyCommand(command, enemy, battleid)
+local function enemyCommand(command, enemy, battleid, npcName)
     local chat = Battleinfo[battleid].chat;
+
+    if command.type == "attack" then
+        local defesa = enemy.defesa or 0;
+        local chat = Battleinfo[battleid].chat;
+        command.damageType = command.damageType or "normal";
+        if not command.roll or command.roll == "" and tonumber(command.value) then
+            command.type = "vidaAtual";
+            command.value = -command.value;
+            enemyCommand(command, enemy, battleid, npcName);
+            return;
+        end
+        local promise = chat:asyncRoll(command.roll, command.value .. "de dano".. command.damageType .."contra" .. enemy.nome, {
+            impersonation = {
+                mode = "character",
+                name = npcName or "jogador",
+            }
+        });
+        local roll, a, b = await(promise);
+        if not roll then
+            Log.e("SimulacrumCore-CommandParser", "Erro ao rolar ataque: " .. a .. b);
+            return;
+        end
+        if tonumber(command.value) then
+            local valoraux = tonumber(command.value);
+
+            if roll > defesa then
+                local dano = valoraux or 0;
+                local comando = {
+                    type = "vidaAtual",
+                    enemyName = enemy.nome,
+                    value = -dano
+                }
+                enemyCommand(comando, enemy, battleid, npcName);
+            else
+                sendMessage(" Ataque falhou contra " .. enemy.nome .. ". Defesa: " .. defesa, Battleinfo[battleid].chat,
+                    "friend");
+            end
+        end
+    end
     if command.type == "vidaAtual" then
         if not tonumber(command.value) then
             Log.e("SimulacrumCore-Commands", "Valor inválido para comando: " .. command.value)
@@ -178,7 +217,7 @@ local function enemyCommand(command, enemy, battleid)
     end
 end
 
-local function playerCommand(command, player, battleid)
+local function playerCommand(command, player, battleid, npcName)
     local chat = Battleinfo[battleid].chat;
     local battlePlayer = getBattlePlayer(battleid, player.login);
     if not battlePlayer then
@@ -191,6 +230,24 @@ local function playerCommand(command, player, battleid)
         return;
     end
     local jogador = getInfoFromPlayer(player);
+
+    if command.type == "attack" then
+        local chat = Battleinfo[battleid].chat;
+        if not command.roll or command.roll == "" and tonumber(command.value) then
+            command.type = "vidaAtual";
+            command.value = -command.value;
+            playerCommand(command, player, battleid, npcName);
+            return;
+        end
+        local promise = chat:asyncRoll(command.roll, command.value .. "contra" .. jogador.nick, {
+            impersonation = {
+                mode = "character",
+                name = npcName or "inimigo",
+            }
+        });
+        await(promise);
+    end
+
     if command.type == "vidaAtual" then
         jogador.vidaAtual = jogador.vidaAtual + command.value;
         if jogador.vidaAtual <= 0 then
@@ -272,7 +329,7 @@ local function playerCommand(command, player, battleid)
 end
 
 
-local function commandInterpreter(command, battleid)
+local function commandInterpreter(command, battleid, npcName)
     if command.playerLogin then
         local battleinfo = Battleinfo[battleid];
         local player = getPlayer(battleinfo.chat, command.playerLogin);
@@ -280,7 +337,7 @@ local function commandInterpreter(command, battleid)
             Log.e("SimulacrumCore-Commands", "Jogador não encontrado: " .. command.playerLogin);
             return;
         end
-        playerCommand(command, player, battleid);
+        playerCommand(command, player, battleid, npcName);
     elseif command.enemyName then
         local battleinfo = Battleinfo[battleid];
         local enemy = nil;
@@ -294,7 +351,7 @@ local function commandInterpreter(command, battleid)
             Log.e("SimulacrumCore-Commands", "Inimigo não encontrado: " .. command.enemyName);
             return;
         end
-        return enemyCommand(command, enemy, battleid);
+        return enemyCommand(command, enemy, battleid, npcName);
     else
         Log.e("SimulacrumCore-Commands", "Comando inválido: " .. tostring(command));
     end
