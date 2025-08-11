@@ -49,7 +49,7 @@ group.handleCombatCommand = function(battleid, content, entity)
     else
         local tipo, entidade, valor, valoraux = content:match("^%s*(.-)%s*|%s*(.-)%s*|%s*(.-)%s*|%s*(.-)%s*$")
         if tipo and entidade and valor and valoraux then
-            commandParser(battleid, tipo, entidade, valor, valoraux, entity);
+            commandParser(battleid, tipo, entidade, valor, valoraux, entity.login);
         else
             sendMessage(" Comando inválido. Formato esperado: Combat: tipo|entidade|valor|valoraux", Battleinfo[battleid].chat, "friend")
         end

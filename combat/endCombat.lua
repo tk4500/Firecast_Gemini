@@ -26,8 +26,7 @@ local function endCombat(battleid, isVictory)
         sendMessage("Itens:", battleinfo.chat, "friend");
         for i, item in ipairs(Battleinfo[battleid].itens) do
             if item then
-                local itemString = [[
-                Nome: ]] .. item.nome .."\n".. 
+                local itemString = [[Nome: ]] .. item.nome .."\n".. 
                 [[Rank: ]] .. item.rank .. "\n"..
                 [[Tipo: ]] .. item.tipo .. "\n";
                 if item.preco then

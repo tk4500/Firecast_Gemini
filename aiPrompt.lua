@@ -15,13 +15,13 @@ O JSON de resposta deve ter a seguinte estrutura:
     // Array de objetos Command que representam as ações e seus efeitos.
   ]
 }
-
+s
 ### Definição da Estrutura 'Command':
 {
   "playerLogin": string,   // Opcional: O login do jogador alvo do comando.
   "enemyName": string,     // Opcional: O nome do inimigo alvo do comando.
   "type": "vidaAtual" | "vidaMax" | "energiaAtual" | "energiaMax" | "defesa" | "danoBase" | "sync" | "iniciativa" | "roll" | "attack" | "effect",
-  "value": string,         // Para 'attack', é o dano. Para 'roll', é a CD. Para 'effect', descrição. Para stats, a mudança (ex: "-45", "5").
+  "value": string,         // Para 'attack', é o dano. Para 'roll', é a CD. Para 'effect', descrição. Para stats, a mudança em NUMERO INTEIRO (ex: "-45", "5").
   "roll": string,          // Opcional: A string da rolagem (ex: "1d20+8"). Usado com 'attack' para a rolagem de ataque, e com 'roll' para o teste de resistência.
   "turns": number,         // Opcional: Duração em turnos para efeitos temporários.
   "damageType": string     // Opcional: O tipo de dano do ataque.
@@ -97,8 +97,9 @@ O JSON de resposta deve ter a seguinte estrutura:
   "enemies": [] // Array de inimigos, cada um com as seguintes chaves:
     {
         nome: string,
-        ameaca: number(1-10),
-        nivel: number,
+        nick: char[3], // String de 3 caracteres representando o inimigo, deve ser único e não repetido. ex: "GT1", "GT2", "GT3". 
+        ameaca: ]]..(encounterData.difficulty or 5)..[[,
+        nivel: ]]..(encounterData.enemyLvl or 1)..[[,
         xpDrop: number,
         moneyDrop: number, // Quantidade de dinheiro que o inimigo solta ao ser derrotado em Créditos-S.
         itemDrop: [] // Array de itens, cada um com as seguintes chaves:
@@ -138,16 +139,10 @@ O JSON de resposta deve ter a seguinte estrutura:
     }
 }
 
-
-
-
----
 -- [CONTEXTO DO ENCONTRO] --
-1.  **Dificuldade (1-10)**: ]] .. (encounterData.difficulty or 5) .. [[
-2.  **Media de Nivel dos jogadores (APL)**: ]] .. encounterData.apl .. [[
-3.  **Numero de Inimigos**: "]] .. encounterData.numEnemies .. [["
-4.  **Numero de Jogadores**: "]] .. encounterData.numPlayers .. [["
-5.  **Nivel do Inimigo**: ]] .. encounterData.enemyLvl .. [[
+3.  **Numero de Inimigos**: "]] .. encounterData.numEnemies .. "\n"..[["
+4.  **Numero de Jogadores**: "]] .. encounterData.numPlayers .. "\n"..[["
+5.  **Nivel do Inimigo**: ]] .. encounterData.enemyLvl .. "\n"..[[
 6.  **Players**:
 ]] .. encounterData.players .. [[
 -- [FIM DO CONTEXTO] --
@@ -158,20 +153,20 @@ O JSON de resposta deve ter a seguinte estrutura:
     *   Crie nomes **únicos** para cada inimigo. Se houver lacaios, use nomes como "Construto de Ferrugem Alfa" e "Construto de Ferrugem Beta".
 
 2.  **Determine os Níveis**:
-    *   O nível de poder médio para os inimigos neste encontro foi pré-calculado para você como **Nível do Inimigo**.
-    *   Distribua este poder. Se houver vários inimigos (`numEnemies`), você pode criar um "líder" com um nível ligeiramente acima do **Nível do Inimigo** e "lacaios" com um nível ligeiramente abaixo, mas a média geral deve ser próxima ao valor fornecido, NÃO CRIE MAIS INIMIGOS DO QUE O NUMERO DE INIMIGOS.
+    *   o nivel dos inimigos deve ser o **Nível do Inimigo** passado no contexto.
+    *   NÃO CRIE MAIS INIMIGOS DO QUE O NUMERO DE INIMIGOS, caso tenham multiplos inimigos, você pode fazer um deles ser ligeriamente mais forte que os outros, enquanto enfraquece os demais (comandante).
 
 3.  **Calcule os Stats**:
-    *   Baseie TODOS os stats (`vidaMax`, `danoBase`, `defesa`, etc.) no **nível individual** que você definiu para cada inimigo. Use as regras de referência do jogo (`Rules`) para garantir o balanceamento.
+    *   Baseie TODOS os stats (`vidaMax`, `danoBase`, `defesa`, etc.) no **Nível do Inimigo** pré-definido. Use as regras de referência do jogo (`Rules`) para garantir o balanceamento.
     *   Inimigos de nível mais alto devem ser significativamente mais resistentes e perigosos.
 
 4.  **Crie as Habilidades**:
     *   Desenvolva 2-4 habilidades temáticas para cada inimigo.
-    *   O Rank MÁXIMO das habilidades de um inimigo depende estritamente do **NÍVEL** dele (Nível 15 para `<<Extra>>`, 35 para `<<<Unique>>>`, 75 para `<<<<Ultimate>>>>`).
+    *   O Rank MÁXIMO das habilidades de um inimigo depende estritamente do **Nível do Inimigo** dele (Nível 1 para `Common`, Nível 5 para `Basic`, Nível 15 para `<<Extra>>`, 35 para `<<<Unique>>>`, 75 para `<<<<Ultimate>>>>`).
     *   Inimigos líderes ou de 'ameaca' mais alta devem ter habilidades mais complexas e sinérgicas.
 
 5.  **Defina as Recompensas**:
-    *   **`xpDrop` e `moneyDrop`**: As recompensas devem escalar com o **NÍVEL** e a **AMEAÇA** de cada inimigo. Um boss de nível 40 deve conceder muito mais XP e Créditos-S do que um lacaio de nível 10.
+    *   **`xpDrop` e `moneyDrop`**: As recompensas devem escalar com o **Nível do Inimigo**. Um boss de nível 40 deve conceder muito mais XP e Créditos-S do que um lacaio de nível 10.
     *   **`itemDrop`**: O loot deve ser temático com o inimigo. Inimigos mais fortes (nível e ameaça mais altos) têm uma chance maior de dropar itens de Ranks mais elevados (`<<Extra>>` ou `<<<Unique>>>`) ou `Diagramas`.
 
 -- [FIM DAS DIRETRIZES] --

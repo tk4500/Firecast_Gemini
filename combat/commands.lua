@@ -71,13 +71,32 @@ local function enemyCommand(command, enemy, battleid, npcName)
             enemyCommand(command, enemy, battleid, npcName);
             return;
         end
-        local promise = chat:asyncRoll(command.roll, command.value .. "de dano".. command.damageType .."contra" .. enemy.nome, {
+        local promise = chat:asyncRoll(command.roll,
+            command.value .. " de dano " .. command.damageType .. " contra " .. enemy.nome, {
             impersonation = {
                 mode = "character",
                 name = npcName or "jogador",
             }
         });
         local roll, a, b = await(promise);
+        local isCrit = false;
+        local isGlitch = false;
+        if a then
+            local ops = a.ops;
+            for i, op in ipairs(ops) do
+                if op.tipo == "dado" then
+                    local resultados = op.resultados;
+                    if resultados and #resultados > 0 then
+                        local resultado = resultados[1];
+                        if resultado == 20 then
+                            isCrit = true;
+                        elseif resultado == 1 then
+                            isGlitch = true;
+                        end
+                    end
+                end
+            end
+        end
         if not roll then
             Log.e("SimulacrumCore-CommandParser", "Erro ao rolar ataque: " .. a .. b);
             return;
@@ -85,8 +104,13 @@ local function enemyCommand(command, enemy, battleid, npcName)
         if tonumber(command.value) then
             local valoraux = tonumber(command.value);
 
-            if roll > defesa then
+            if (roll >= defesa or isCrit) and not isGlitch then
                 local dano = valoraux or 0;
+                if isCrit then
+                    dano = dano * 2; -- Dano dobrado em crítico
+                elseif isGlitch then
+                    dano = 0;        -- Nenhum dano em falha crítica
+                end
                 local comando = {
                     type = "vidaAtual",
                     enemyName = enemy.nome,
@@ -98,8 +122,14 @@ local function enemyCommand(command, enemy, battleid, npcName)
                     "friend");
             end
         end
-    end
-    if command.type == "vidaAtual" then
+    elseif command.type == "acerto" then
+        if not tonumber(command.value) then
+            Log.e("SimulacrumCore-Commands", "Valor inválido para comando: " .. command.value);
+            return;
+        end
+        local acerto = enemy.acerto or 0;
+        enemy.acerto = acerto + command.value;
+    elseif command.type == "vidaAtual" then
         if not tonumber(command.value) then
             Log.e("SimulacrumCore-Commands", "Valor inválido para comando: " .. command.value)
             return
@@ -173,7 +203,7 @@ local function enemyCommand(command, enemy, battleid, npcName)
         end
         enemy.danoBase = enemy.danoBase + command.value;
     elseif command.type == "roll" then
-        local promise = chat:asyncRoll(command.roll, "valor mudado:" .. command.value, {
+        local promise = chat:asyncRoll(command.roll, "valor mudado: " .. command.value, {
             impersonation = {
                 mode = "character",
                 name = enemy.nome or "Inimigo",
@@ -239,16 +269,42 @@ local function playerCommand(command, player, battleid, npcName)
             playerCommand(command, player, battleid, npcName);
             return;
         end
-        local promise = chat:asyncRoll(command.roll, command.value .. "contra" .. jogador.nick, {
+        local promise = chat:asyncRoll(command.roll, command.value .. " contra " .. jogador.nick, {
             impersonation = {
                 mode = "character",
                 name = npcName or "inimigo",
             }
         });
-        await(promise);
-    end
-
-    if command.type == "vidaAtual" then
+        local roll, a, b = await(promise);
+        local isCrit = false;
+        local isGlitch = false;
+        if a then
+            local ops = a.ops;
+            for i, op in ipairs(ops) do
+                if op.tipo == "dado" then
+                    local resultados = op.resultados;
+                    if resultados and #resultados > 0 then
+                        local resultado = resultados[1];
+                        if resultado == 20 then
+                            isCrit = true;
+                        elseif resultado == 1 then
+                            isGlitch = true;
+                        end
+                    end
+                end
+            end
+        end
+        if command.value and tonumber(command.value) then
+            local valoraux = tonumber(command.value);
+            if isCrit then
+                valoraux = valoraux * 2; -- Dano dobrado em crítico
+            elseif isGlitch then
+                valoraux = 0;            -- Nenhum dano em falha crítica
+            end
+            sendCombatMessage(chat, npcName .. " causa " .. valoraux .. " de dano a " .. jogador.nick .. " caso acerte .",
+                npcName);
+        end
+    elseif command.type == "vidaAtual" then
         jogador.vidaAtual = jogador.vidaAtual + command.value;
         if jogador.vidaAtual <= 0 then
             killAlly(battleid, player);
@@ -302,11 +358,13 @@ local function playerCommand(command, player, battleid, npcName)
     elseif command.type == "defesa" then
         sendMessage("Defesa de" .. jogador.nick .. " modificada em " .. command.value, chat, "friend");
     elseif command.type == "danoBase" then
-        sendMessage("danoBase de" .. jogador.nick .. " modificada em " .. command.value, chat, "friend");
+        sendMessage("danoBase de " .. jogador.nick .. " modificada em " .. command.value, chat, "friend");
     elseif command.type == "roll" then
+        command.roll = command.roll or "1d20";
         sendMessage(jogador.nick .. ", role" .. command.roll .. " com valor: " .. command.value, chat, "friend");
     elseif command.type == "effect" then
         command.turns = command.turns or 1;
+        command.value = command.value or "Não informado";
         sendMessage("Efeito aplicado a " .. jogador.nick .. " por " .. command.turns .. " turnos: " .. command.value,
             chat, "friend");
     elseif command.type == "sync" then
@@ -328,6 +386,54 @@ local function playerCommand(command, player, battleid, npcName)
     end
 end
 
+local function playerPercentage(command, player, battleid)
+    local value = string.gsub(command.value, "%%", "");
+    if command.type == "sync" then
+        return value
+    end
+    
+    local personagem = Battleinfo[battleid].chat.room:findBibliotecaItem(player.personagemPrincipal);
+    if not personagem then
+        Log.e("SimulacrumCore-Commands", "Personagem não encontrado: " .. player.personagemPrincipal);
+        return value;
+    end
+    local valueN = tonumber(value) or 0;
+    if command.type == "vidaAtual" then
+        return math.floor(personagem.bar0Val * valueN/100)
+    end
+    if command.type == "vidaMax" then
+        return math.floor(personagem.bar0Max * valueN/100)
+    end
+    if command.type == "energiaAtual" then
+        return math.floor(personagem.bar1Val * valueN/100)
+    end
+    if command.type == "energiaMax" then
+        return math.floor(personagem.bar1Max * valueN/100)
+    end
+    return valueN;
+end
+local function enemyPercentage(command, enemy, battleid)
+    local value = string.gsub(command.value, "%%", "");
+    if command.type == "sync" then
+        return value
+    end
+
+    local valueN = tonumber(value) or 0;
+    if command.type == "vidaAtual" then
+        return math.floor(enemy.vidaAtual * valueN/100)
+    end
+    if command.type == "vidaMax" then
+        return math.floor(enemy.vidaMax * valueN/100)
+    end
+    if command.type == "energiaAtual" then
+        return math.floor(enemy.energiaAtual * valueN/100)
+    end
+    if command.type == "energiaMax" then
+        return math.floor(enemy.energiaMax * valueN/100)
+    end
+    return valueN;
+end
+
 
 local function commandInterpreter(command, battleid, npcName)
     if command.playerLogin then
@@ -336,6 +442,9 @@ local function commandInterpreter(command, battleid, npcName)
         if not player then
             Log.e("SimulacrumCore-Commands", "Jogador não encontrado: " .. command.playerLogin);
             return;
+        end
+        if command.type ~= "effect" and command.type ~= "roll" and string.find(command.value, "%%") then
+            command.value = playerPercentage(command, player, battleid)
         end
         playerCommand(command, player, battleid, npcName);
     elseif command.enemyName then
@@ -350,6 +459,9 @@ local function commandInterpreter(command, battleid, npcName)
         if not enemy then
             Log.e("SimulacrumCore-Commands", "Inimigo não encontrado: " .. command.enemyName);
             return;
+        end
+        if command.type ~= "effect" and command.type ~= "roll" and string.sub(command.value, -1) == "%" then
+            command.value = enemyPercentage(command, enemy, battleid)
         end
         return enemyCommand(command, enemy, battleid, npcName);
     else

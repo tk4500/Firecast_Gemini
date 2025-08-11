@@ -52,6 +52,10 @@ Firecast.Messaging.listen(
 
             message.response = { handled = true };
         end
+
+        if message.command == "pass" then
+            
+        end
         if message.command == "dump" then
             local groupid = message.chat.medium.groupId;
             local battleinfo = Battleinfo[groupid];
@@ -76,6 +80,9 @@ Firecast.Messaging.listen("ChatMessageEx",
             if (rUtils.startsWith(content, "Fusion:")) then
                 fusion(message);
                 return;
+            end
+
+            if (rUtils.startsWith(content, "Tenshi: ")) then
             end
             if (rUtils.startsWith(content, "Friend:")) then
                 friend(message);

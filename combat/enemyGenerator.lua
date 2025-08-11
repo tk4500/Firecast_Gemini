@@ -16,7 +16,7 @@ end
 
 local function getEnemylvl(apl, difficulty, numEnemies, numPlayers)
     local allLvls = apl * numPlayers;
-    local multiplier = 1 + (difficulty - 3) * (apl / 10);
+    local multiplier = 1 + ((difficulty - 3) * apl/100);
     local allEnemyLvl = allLvls * multiplier;
     local enemyLvl = allEnemyLvl / numEnemies;
     return math.max(1, math.floor(enemyLvl + 0.5));
@@ -33,24 +33,23 @@ local function enemyGenerator(battleid, content)
     local encouterData = {
         difficulty = nivelAmeaca
     }
-    local numEnemies = math.random(20);
-    if numEnemies > 10 then
-        numEnemies = 1;
+    
+    local numPlayers = #battleinfo.players;
+    local maxEnemies = numPlayers * 3;
+    local rolls = 7-numPlayers;
+    if rolls < 1 then
+        rolls = 1;
     end
-    if numEnemies > 15 then
-        numEnemies = 2;
-    end
-    if numEnemies > 18 then
-        numEnemies = 3;
-    end
-    if numEnemies > 19 then
-        numEnemies = 4;
-    end
-    if numEnemies == 20 then
-        numEnemies = 5;
+    
+    local numEnemies = math.random(1, maxEnemies);
+    for i = 1, rolls do
+       local temp = math.random(1, maxEnemies);
+         if temp < numEnemies then
+              numEnemies = temp;
+         end
     end
     encouterData.numEnemies = numEnemies;
-    local numPlayers = #battleinfo.players;
+    
     local players = "";
     local totalLevels = 0;
     for i, player in ipairs(battleinfo.players) do
@@ -92,7 +91,9 @@ local function enemyGenerator(battleid, content)
     if apl < 1 then
         apl = 1;
     end
+    Log.i("SimulacrumCore-EnemyGenerator", "APL calculado: " .. apl);
     local enemylvl = getEnemylvl(apl, nivelAmeaca, numEnemies, numPlayers);
+    Log.i("SimulacrumCore-EnemyGenerator", "Nível dos inimigos calculado: " .. enemylvl);
     encouterData.apl = apl;
     encouterData.numPlayers = numPlayers;
     encouterData.enemyLvl = enemylvl;
@@ -102,6 +103,10 @@ local function enemyGenerator(battleid, content)
     Battleinfo[battleid].encounterTheme = encounter.encounterTheme;
     Battleinfo[battleid].chat:enviarMensagem("/cls");
     sendMessage(" Tema do Combate: " .. encounter.encounterTheme, Battleinfo[battleid].chat, "friend");
+    sendMessage(" Inimigos gerados: " .. #encounter.enemies, battleinfo.chat, "friend");
+    for j=1, #encounter.enemies do
+        sendMessage(j..".- ".. encounter.enemies[j].nome.. " lvl:".. encounter.enemies[j].nivel.. " COD:" .. encounter.enemies[j].nick, battleinfo.chat, "friend");
+    end
     Battleinfo[battleid].enemies = encounter.enemies;
     Battleinfo[battleid].xpAcumulado = 0;
     Battleinfo[battleid].money = 0;

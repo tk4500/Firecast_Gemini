@@ -54,7 +54,7 @@ local function commandParser(battleid, tipo, entidade, valor, valoraux, msgsende
         playerCommand(tipo, entity, valor, valoraux, battleid, msgsender);
     else
         for i, enemy in ipairs(Battleinfo[battleid].enemies) do
-            if enemy.nome == entidade then
+            if enemy.nick == entidade then
                 entity = enemy;
                 break;
             end

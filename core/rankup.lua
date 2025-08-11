@@ -23,7 +23,7 @@ local mat = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
                 local materials, rank, craftingModifier = mat:match("%s*(.-)%s*|%s*(.-)%s*|%s*(.+)$")
                 if not materials then
                     sendMessage(
-                        " Formato inválido. Use: Craft: <materiais> | (rank )", message.chat, "friend");
+                        " Formato inválido. Use: Rankup: <materiais> | (rank) | (modificador)", message.chat, "friend");
                     return;
                 end
                 if not craftingModifier or craftingModifier == "" then
@@ -35,7 +35,7 @@ local mat = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
 
                 if tonumber(craftingModifier) == nil then
                     sendMessage(
-                        " O modificador de Craft precisa ser um número. Use: Craft: <materiais> (<modificador numérico>)", message.chat, "friend");
+                        " O modificador de Craft precisa ser um número. Use: Rankup: <materiais> | (rank) | (modificador numérico)", message.chat, "friend");
                     return;
                 end
                 
