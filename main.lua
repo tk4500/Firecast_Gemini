@@ -16,6 +16,7 @@ local setGeminiKey = require("gemini/setGeminiKey.lua")
 local rUtils = require("token_utils.lua")
 local rankup = require("core/rankup.lua")
 local turnEnd = require("combat/turnEnd.lua")
+local imageRequest = require("gemini/imageRequest.lua")
 Log.i("SimulacrumCore-Main", "Plugin Simulacrum Core carregando.")
 Battleinfo = {}
 Firecast.Messaging.listen(
@@ -76,13 +77,10 @@ Firecast.Messaging.listen("ChatMessageEx",
     function(message)
         if message.logRec.msg.content then
             local content = message.logRec.msg.content;
-            Log.i("SimulacrumCore-Main", "ChatMessageEx received: " .. content);
+            Log.i("SimulacrumCore-Main", "ChatMessageEx received: " .. tostring(content));
             if (rUtils.startsWith(content, "Fusion:")) then
                 fusion(message);
                 return;
-            end
-
-            if (rUtils.startsWith(content, "Tenshi: ")) then
             end
             if (rUtils.startsWith(content, "Friend:")) then
                 friend(message);
@@ -102,11 +100,16 @@ Firecast.Messaging.listen("ChatMessageEx",
                 geminiCall(prompt, "gemini", message.chat);
             end
 
+            if (rUtils.startsWith(content, "geminiImage ")) then
+                local prompt = content:sub(12):match("^%s*(.-)%s*$") -- Remove "geminiImage" prefix
+                imageRequest(prompt, message.chat);
+            end
+
             if (rUtils.startsWith(content, "Craft:")) then
                 craft(message);
                 return;
             end
-            if (rUtils.startsWith(content, "Rankup:")) then
+            if (rUtils.startsWith(content, "Refine:")) then
                 rankup(message);
                 return;
             end

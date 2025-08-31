@@ -17,25 +17,28 @@ local ranks = {
     "Multi-Versal"
 }
 
-local function craft(message)
+local function refine(message)
     local content = message.logRec.msg.content;
-local mat = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
-                local materials, rank, craftingModifier = mat:match("%s*(.-)%s*|%s*(.-)%s*|%s*(.+)$")
+local mat = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Refine:" prefix
+                local materials, rank, ench, craftingModifier = mat:match("%s*(.-)%s*|%s*(.-)%s*|%s*(.-)%s*|%s*(.+)$")
                 if not materials then
                     sendMessage(
-                        " Formato inválido. Use: Rankup: <materiais> | (rank) | (modificador)", message.chat, "friend");
+                        " Formato inválido. Use: Refine: <materiais> | (rank) | (aprimoramento) | (modificador)", message.chat, "friend");
                     return;
                 end
                 if not craftingModifier or craftingModifier == "" then
                     craftingModifier = "0"; -- Default modifier if not provided
                 end
-                if not rank or rank == "" then
+                if not ench or ench == "" or tonumber(ench) == nil then
+                    ench = "0"; -- Default enchantment if not provided
+                end
+                if not rank or rank == "" or tonumber(rank) == nil then
                     rank = "0"; -- Default rank if not provided
                 end
 
                 if tonumber(craftingModifier) == nil then
                     sendMessage(
-                        " O modificador de Craft precisa ser um número. Use: Rankup: <materiais> | (rank) | (modificador numérico)", message.chat, "friend");
+                        " O modificador de Craft precisa ser um número. Use: Refine: <materiais> | (rank) | (aprimoramento) | (modificador numerico)", message.chat, "friend");
                     return;
                 end
                 
@@ -50,13 +53,12 @@ local mat = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
                 }
                 local promise = message.chat:asyncRoll("1d20+".. craftingModifier , jogador.nick .. " Crafting Roll", params);
                 local roll, a, b = await(promise);
-                local value = 12 + rank * 3;
+                local value = 12 + ench * 3;
                 local craftingResult = "SUCESSO";
+                ench = ench + 1; -- Increase ench on success
                 if roll < value then
-                    sendMessage(
-                        " Crafting falhou com " .. roll .. ". Valor necessário: " .. value .. ".",
-                        message.chat, "friend");
-                    return;
+                    craftingResult = "FALHA";
+                    ench = ench - 2; -- Decrease ench on failure
                 end
                 if roll - craftingModifier == 20 then
                     craftingResult = "SUCESSO_CRITICO";
@@ -67,7 +69,6 @@ local mat = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
                         message.chat, "friend");
                     return;
                 end
-                rank = rank + 1; -- Increase rank on success
                 Log.i("SimulacrumCore-Main", "Roll: " .. roll)
                 Log.i("SimulacrumCore-Main", "Materials: " .. materials)
                 Log.i("SimulacrumCore-Main", "Crafting Modifier: " .. craftingModifier)
@@ -93,8 +94,9 @@ local mat = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
                     personagem = personagem,
                     tokens = tokens,
                     rankAlvo = rankAlvo,
+                    ench = ench,
                 }
                 local prompt = aiPrompt.getAiRankUp(contextoJogador);
-                geminiCall(prompt, "aiCrafting", message.chat);
+                geminiCall(prompt, "aiRefining", message.chat);
 end
-return craft;
+return refine;

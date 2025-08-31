@@ -263,12 +263,13 @@ local function playerCommand(command, player, battleid, npcName)
 
     if command.type == "attack" then
         local chat = Battleinfo[battleid].chat;
-        if not command.roll or command.roll == "" and tonumber(command.value) then
+        if (not command.roll or command.roll == "") and tonumber(command.value) then
             command.type = "vidaAtual";
             command.value = -command.value;
             playerCommand(command, player, battleid, npcName);
             return;
         end
+        
         local promise = chat:asyncRoll(command.roll, command.value .. " contra " .. jogador.nick, {
             impersonation = {
                 mode = "character",

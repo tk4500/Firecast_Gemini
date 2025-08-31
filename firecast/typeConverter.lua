@@ -13,7 +13,7 @@ local function aiCastingmsg(efeito)
     end
     return "|Nome:" ..
         efeito.nome ..
-        "\n|Rank: " .. efeito.rank .. "\n|Tipo: " .. efeito.tipo .. 
+        "\n|Rank: " .. efeito.rank .. "\n|Tipo: " .. efeito.tipo ..
         "\n|Custo: " .. efeito.custo .. "\n|Descrição:" .. efeito.descricao
 end
 
@@ -26,6 +26,7 @@ local function decodeJson(text)
 end
 
 local function typeConverter(text, tipo)
+    Log.i("SimulacrumCore-typeConverter", "Convertendo tipo: " .. tostring(tipo));
     if (tipo == "friend" or tipo == "gemini") then
         local decoded = Internet.httpDecode(text);
         return decoded, tipo;
@@ -65,10 +66,12 @@ local function typeConverter(text, tipo)
             local mensagem = "Receita: " .. efeito.nomeReceita .. "\n";
             mensagem = mensagem .. "Materiais necessários: " .. efeito.materiaisReceita .. "\n";
             mensagem = mensagem .. "Item: " .. efeito.nomeItem .. "\n";
-            mensagem = mensagem .. "Rank: " .. efeito.rankItem .. "\n";
-            mensagem = mensagem .. "Valor: " .. efeito.value .. "\n";
             mensagem = mensagem .. "Tipo: " .. efeito.tipoItem .. "\n";
-            mensagem = mensagem .. "Efeito: " .. efeito.efeitoItem;
+            mensagem = mensagem .. "Slots: " .. efeito.slots .. "\n";
+            mensagem = mensagem .. "Stack: " .. efeito.stack .. "\n";
+            mensagem = mensagem .. "Rank: " .. efeito.rankItem .. "\n";
+            mensagem = mensagem .. "Valor: " .. efeito.valor .. "\n";
+            mensagem = mensagem .. "Efeito: " .. efeito.efeito;
             if efeito.aviso and efeito.aviso ~= "" then
                 mensagem = mensagem .. "\nAviso: " .. efeito.aviso;
             end
@@ -82,6 +85,28 @@ local function typeConverter(text, tipo)
             end
             return mensagem, "friend";
         end
+    elseif (tipo == "aiRefining") then
+        local sucesso, efeito = decodeJson(text);
+        if not sucesso then
+            Log.e("SimulacrumCore-typeConverter", "Resposta inválida do Gemini: " .. text);
+            return "Resposta inválida do Gemini. Verifique o formato JSON.", "friend";
+        end
+        local mensagem = "";
+        if efeito.sucesso then
+            mensagem = "Item refinado com sucesso!\n";
+        else
+            mensagem = "Falha no refinamento.\n";
+        end
+         mensagem = mensagem .. "Item: " .. efeito.nomeItem .. "\n";
+            mensagem = mensagem .. "Rank: " .. efeito.rankItem .. "\n";
+            mensagem = mensagem .. "Valor: " .. efeito.value .. "\n";
+            mensagem = mensagem .. "Tipo: " .. efeito.tipoItem .. "\n";
+            mensagem = mensagem .. "Efeito: " .. efeito.efeitoItem;
+            mensagem = mensagem .. "\nBônus do Aprimoramento: " .. efeito.bonus;
+            if efeito.aviso and efeito.aviso ~= "" then
+                mensagem = mensagem .. "\nAviso: " .. efeito.aviso;
+            end
+        return mensagem, "friend";
     else
         Log.e("SimulacrumCore-typeConverter", "Tipo inválido: " .. tostring(type));
         return "", nil;

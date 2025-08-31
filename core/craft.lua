@@ -3,6 +3,7 @@ local sendMessage = require("firecast/sendMessage.lua")
 local getPlayerFromChat = require("firecast/getPlayerFromChat.lua")
 local aiPrompt = require("aiPrompt.lua")
 local geminiCall = require("gemini/geminiCall.lua")
+local rUtils = require("token_utils.lua")
 
 local ranks = {
     "Common",
@@ -25,6 +26,11 @@ local prompt = content:sub(7):match("^%s*(.-)%s*$") -- Remove "Craft:" prefix
                     sendMessage(
                         " Formato inválido. Use: Craft: <materiais> | <rank> | <modificador> | <tipo do item (opcional)>", message.chat, "friend");
                     return;
+                end
+
+                if rUtils.contarTokens(itemType) > 6 then
+                    itemType = itemType:match("^(%S+)")
+
                 end
                 if not craftingModifier or craftingModifier == "" then
                     craftingModifier = "0"; -- Default modifier if not provided

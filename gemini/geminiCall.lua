@@ -15,6 +15,10 @@ local function geminiCall(prompt, type, chat)
                 Log.e("SimulacrumCore-GeminiCall", "Erro ao processar resposta do Gemini: " .. responseJson);
                 return;
             end
+            if resposta.candidates[1].content.parts == nil or #resposta.candidates[1].content.parts == 0 then
+                Log.e("SimulacrumCore-GeminiCall", "Resposta inválida do Gemini: " .. responseJson);
+                return;
+            end
             if resposta.candidates[1].content.parts[1].text then
                 local respostaDecodificada = resposta.candidates[1].content.parts[1].text;
                 local mensagem, param = typeConverter(respostaDecodificada, type);

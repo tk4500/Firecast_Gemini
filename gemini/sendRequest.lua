@@ -4,7 +4,7 @@ require("async.lua")
 require("gemini/setGeminiKey.lua")
 
 local sendRequest = function(prompt)
-    local url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" ..
+    local url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro:generateContent?key=" ..
         GEMINI_API_KEY;
     local request = Internet.newHTTPRequest();
     local payload = { contents = { { parts = { { text = prompt } } } } }

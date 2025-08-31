@@ -16,6 +16,11 @@ local function friend(message)
         return;
     end
     local energiaGasta = energiaStr;
+    local palavras = rUtils.contarTokens(energiaGasta);
+    if palavras >= 8 then
+        sendMessage(" Custo/Limitação muito extenso, utilize menos palavras", message.chat, "friend");
+        return;
+    end
     local tokensUsados = rUtils.contarTokens(prompt);
     local jogador = getPlayerFromChat(message);
     Log.i("SimulacrumCore-Friend", "Jogador encontrado: " .. (jogador and jogador.login or "Desconhecido"));
