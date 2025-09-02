@@ -1,4 +1,3 @@
-
 -- Requisita as bibliotecas necessárias
 require("internet.lua")
 require("utils.lua")
@@ -41,7 +40,11 @@ local function uploadImagemGerada(jsonTable, chat, prompt)
         function(fireItem)
             if fireItem and fireItem.url then
                 local msg = "[§I" .. fireItem.url .. "]"
-                sendMessage("Gemini: " .. msg, chat)
+                if chat.room.me.isMestre then
+                    sendMessage(msg, chat, "gemini")
+                else
+                    sendMessage("Gemini: " .. msg, chat)
+                end
             else
                 Log.e("SimulacrumCore-Upload", "Erro no upload para o FireDrive: fireItem inválido.")
                 sendMessage("Gemini: Erro ao fazer upload da imagem gerada.", chat)
@@ -58,11 +61,12 @@ end
 local function sendRequest(prompt, chat)
     Log.i("SimulacrumCore-Gemini", "Iniciando requisição para Gemini.")
     local url =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:streamGenerateContent?key=" ..
-    GEMINI_API_KEY
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:streamGenerateContent?key=" ..
+        GEMINI_API_KEY
 
     local payload = {
-        contents = { { parts = {} } }
+        contents = { { parts = {} } }, -- Inicializa parts como uma tabela vazia
+        generationConfig = { responseModalities = { "IMAGE", "TEXT" } }
     }
 
     -- Verifica se o prompt contém uma imagem para ser usada como entrada
@@ -79,12 +83,14 @@ local function sendRequest(prompt, chat)
             sendMessage("Gemini: Falha ao baixar a imagem que você enviou.", chat)
             payload.contents[1].parts = { { text = cleanPrompt } }
         else
-            Log.i("SimulacrumCore-Gemini", "Stream".. tostring(stream) .. " MIME Type: " .. tostring(mimeType) .. " Size: " .. tostring(stream.size));
+            Log.i("SimulacrumCore-Gemini", "Stream" .. tostring(stream) .. " MIME Type: " .. tostring(mimeType));
             local base64Data = stream:readAsBase64(stream.size)
+            local clean64 = base64Data:gsub("[\r\n]", "")
+            stream:close();
             Log.i("SimulacrumCore-Gemini", "Imagem de entrada convertida para Base64.")
             -- Monta o payload multimodal
             payload.contents[1].parts = {
-                { inlineData = { data = tostring(base64Data), mimeType = mimeType } },
+                { inlineData = { data = clean64, mimeType = mimeType } },
                 { text = cleanPrompt }
             }
         end
@@ -107,9 +113,6 @@ local function sendRequest(prompt, chat)
                 chars[i] = string.char(buffer[i])
             end
             local responseText = table.concat(chars)
-
-            -- Limpa o JSON recebido do stream
-            responseText = responseText:gsub("data: ", ""):gsub("\r?\n", ""):gsub("]%s*,%s*%[", ",")
 
             local success, data = pcall(Json.decode, responseText)
             if success then

@@ -162,7 +162,7 @@ function rUtils.getTextFromCharacter(personagem)
             local ps = NDB.getChildNodes(aba.txt);
             local txt = getTextFromNode(ps);
             if txt and txt ~= "" then
-                final = final .. "\n\n" .. nome .. ":\n" .. txt;
+                final = final .. "\n\n" .. (nome or "N/A") .. ":\n" .. txt;
             end
         end
 

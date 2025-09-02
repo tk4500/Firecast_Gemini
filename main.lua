@@ -3,6 +3,9 @@ require("firecast.lua")
 require("internet.lua")
 require("log.lua")
 require("dialogs.lua");
+require("afk/afk.lua")
+local afkinfo = require("afk/afkInfo.lua")
+local afk = require("afk/afkChange.lua")
 local getPlayerFromChat = require("firecast/getPlayerFromChat.lua")
 local sendMessage = require("firecast/sendMessage.lua")
 local combat = require("combat/main.lua")
@@ -53,10 +56,6 @@ Firecast.Messaging.listen(
 
             message.response = { handled = true };
         end
-
-        if message.command == "pass" then
-            
-        end
         if message.command == "dump" then
             local groupid = message.chat.medium.groupId;
             local battleinfo = Battleinfo[groupid];
@@ -75,6 +74,19 @@ Firecast.Messaging.listen(
 
 Firecast.Messaging.listen("ChatMessageEx",
     function(message)
+        if message.logRec.msg.msgType == "sys_userJoin" then
+            if message.chat.room.codigoInterno == 251479 then
+                Log.i("SimulacrumCore-Main", "Usuário entrou na mesa 251479: " .. tostring(message.logRec.entity.login));
+                afk(message.logRec)
+            end
+
+        end
+        if message.logRec.msg.msgType == "sys_userLeave" then
+            if message.chat.room.codigoInterno == 251479 then
+                Log.i("SimulacrumCore-Main", "Usuário saiu da mesa 251479: " .. tostring(message.logRec.entity.login));
+                afk(message.logRec)
+            end
+        end
         if message.logRec.msg.content then
             local content = message.logRec.msg.content;
             Log.i("SimulacrumCore-Main", "ChatMessageEx received: " .. tostring(content));
@@ -127,6 +139,9 @@ Firecast.Messaging.listen("ChatMessageEx",
                     turnEnd(message, battleid);
                 end
             end
+            if (rUtils.startsWith(content, "afk")) then
+                afkinfo(message);
+            end
         end
     end
 );
@@ -135,6 +150,28 @@ local chat = Firecast.findMesa(251479).chat;
 if chat then
     Log.i("SimulacrumCore-Main", "Resetando chat para evitar problemas de cache.");
     chat:enviarMensagem("/reset");
+    local logRecs = chat:readLogRecs();
+    local file = VHD.openFile("afk.txt");
+    if file then
+        local fileData = {}
+        local read = file:read(fileData, file.size);
+        if read then
+            local afkData = string.char(table.unpack(fileData));
+            AFK = Utils.strToTable(afkData);
+        end
+    end
+    for _, participant in ipairs(chat.participants) do
+        local login = participant.login;
+        Log.i("SimulacrumCore-Main", "Verificando estado AFK do participante: " .. tostring(login));
+        for i = #logRecs, 1, -1 do
+            local logRec = logRecs[i];
+            if logRec.msg.msgType == "sys_userJoin" and logRec.entity and logRec.entity.login == login then
+                Log.i("SimulacrumCore-Main", "Participante " .. tostring(login) .. " entrou.");
+                afk(logRec);
+                break;
+            end
+        end
+    end
 end
 
 
