@@ -27,8 +27,10 @@ end
 
 local function typeConverter(text, tipo)
     Log.i("SimulacrumCore-typeConverter", "Convertendo tipo: " .. tostring(tipo));
+
+    Log.i("SimulacrumCore-typeConverter", "Decodificando texto: " .. tostring(text));
     if (tipo == "friend" or tipo == "gemini") then
-        local decoded = Internet.httpDecode(text);
+        local decoded = tostring(text);
         return decoded, tipo;
     elseif (tipo == "aiCasting") then
         local sucesso, efeito = decodeJson(text);
@@ -97,15 +99,15 @@ local function typeConverter(text, tipo)
         else
             mensagem = "Falha no refinamento.\n";
         end
-         mensagem = mensagem .. "Item: " .. efeito.nomeItem .. "\n";
-            mensagem = mensagem .. "Rank: " .. efeito.rankItem .. "\n";
-            mensagem = mensagem .. "Valor: " .. efeito.value .. "\n";
-            mensagem = mensagem .. "Tipo: " .. efeito.tipoItem .. "\n";
-            mensagem = mensagem .. "Efeito: " .. efeito.efeitoItem;
-            mensagem = mensagem .. "\nBônus do Aprimoramento: " .. efeito.bonus;
-            if efeito.aviso and efeito.aviso ~= "" then
-                mensagem = mensagem .. "\nAviso: " .. efeito.aviso;
-            end
+        mensagem = mensagem .. "Item: " .. efeito.nomeItem .. "\n";
+        mensagem = mensagem .. "Rank: " .. efeito.rankItem .. "\n";
+        mensagem = mensagem .. "Valor: " .. efeito.value .. "\n";
+        mensagem = mensagem .. "Tipo: " .. efeito.tipoItem .. "\n";
+        mensagem = mensagem .. "Efeito: " .. efeito.efeitoItem;
+        mensagem = mensagem .. "\nBônus do Aprimoramento: " .. efeito.bonus;
+        if efeito.aviso and efeito.aviso ~= "" then
+            mensagem = mensagem .. "\nAviso: " .. efeito.aviso;
+        end
         return mensagem, "friend";
     else
         Log.e("SimulacrumCore-typeConverter", "Tipo inválido: " .. tostring(type));

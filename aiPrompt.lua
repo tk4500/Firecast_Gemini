@@ -101,7 +101,7 @@ O JSON de resposta deve ter a seguinte estrutura:
         ameaca: ]]..(encounterData.difficulty or 5)..[[,
         nivel: ]]..(encounterData.enemyLvl or 1)..[[,
         xpDrop: number,
-        moneyDrop: number, // Quantidade de dinheiro que o inimigo solta ao ser derrotado em Créditos-S.
+        moneyDrop: number, // Quantidade de dinheiro que o inimigo solta ao ser derrotado em Creditos-S.
         itemDrop: [] // Array de itens, cada um com as seguintes chaves:
             {
             nome: string, // Nome do item, ex: "Espada de Plasma", "Kit de Reparos Avançado".
@@ -166,7 +166,7 @@ O JSON de resposta deve ter a seguinte estrutura:
     *   Inimigos líderes ou de 'ameaca' mais alta devem ter habilidades mais complexas e sinérgicas.
 
 5.  **Defina as Recompensas**:
-    *   **`xpDrop` e `moneyDrop`**: As recompensas devem escalar com o **Nível do Inimigo**. Um boss de nível 40 deve conceder muito mais XP e Créditos-S do que um lacaio de nível 10.
+    *   **`xpDrop` e `moneyDrop`**: As recompensas devem escalar com o **Nível do Inimigo**. Um boss de nível 40 deve conceder muito mais XP e Creditos-S do que um lacaio de nível 10.
     *   **`itemDrop`**: O loot deve ser temático com o inimigo. Inimigos mais fortes (nível e ameaça mais altos) têm uma chance maior de dropar itens de Ranks mais elevados (`<<Extra>>` ou `<<<Unique>>>`) ou `Diagramas`.
 
 -- [FIM DAS DIRETRIZES] --
@@ -282,7 +282,7 @@ Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, sem t
   "nomeItem": "O nome do item aprimorado com seu novo modificador. Ex: '<Espada Longa +1>'.",
   "rankItem": "O rank do item, que NÃO MUDA. Ex: '<Basic>'.",
   "tipoItem": "O tipo do item, que NÃO MUDA. Ex: 'Equipamento (Arma)'.",
-  "value": "O novo valor do item em Créditos-S, refletindo seu novo nível de aprimoramento.",
+  "value": "O novo valor do item em Creditos-S, refletindo seu novo nível de aprimoramento.",
   "efeitoItem": "a descrição original do item, sem o aprimoramento",
   "bonus": "a descrição do bonus gerado a partir do aprimoramento, ex: '(+2): +10 de dano adicional' siga as regras de bônus de aprimoramento.",
   "aviso": "Um aviso opcional. Se não houver, deixe como string vazia ''."
@@ -294,7 +294,7 @@ Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, sem t
   "nomeItem": "O nome do item com o aprimoramento reduzido com seu novo modificador. Ex: '<Espada Longa +1>'.",
   "rankItem": "O rank do item, que NÃO MUDA. Ex: '<Basic>'.",
   "tipoItem": "O tipo do item, que NÃO MUDA. Ex: 'Equipamento (Arma)'.",
-  "value": "O novo valor do item em Créditos-S, refletindo seu novo nível de aprimoramento.",
+  "value": "O novo valor do item em Creditos-S, refletindo seu novo nível de aprimoramento.",
   "efeitoItem": "a descrição original do item, sem o aprimoramento",
   "bonus": "a descrição do bonus gerado a partir do aprimoramento, ex: '(+2): +10 de dano adicional' siga as regras de bônus de aprimoramento.",
   "aviso": "Um aviso opcional. Se não houver, deixe como string vazia ''."
@@ -331,7 +331,6 @@ Siga estas diretrizes estritamente:
 3.  **SE Resultado for "SUCESSO_CRITICO":**
     *   Gere um JSON de sucesso.
     *   **`nomeItem`**: Adicione `+` seguido do **Nível de Aprimoramento Alvo** ao nome do item base.
-    *   **`efeitoItem`**: Além do bônus de aprimoramento padrão, modifique o efeito original do item positivamente de alguma forma (o item recebe +1 de dano padrão, resistência a uma condição, etc.).
     *   **`bonus`**: A parte mecânica deve juntar todos os bonus do aprimoramento. O bônus é `+10%` nos valores numéricos para cada nível de aprimoramento. Ex: "(+2): +20% de eficácia nos valores numéricos base."
     *   **`value`**: Aumente o valor ainda mais do que um sucesso normal.
 
@@ -368,7 +367,7 @@ Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais. Não 
   "nomeItem": "O nome do item criado, incluindo o rank. Ex: '<Poção de Cura>'.",
   "rankItem": "O rank do item. Ex: 'Common', '<Basic>', '<<Extra>>'.",
   "tipoItem": "A categoria do item. Ex: 'Consumível', 'Arma', 'Armadura', 'Acessório'.",
-  "valor": "O valor do item em Créditos-S. Ex: 150.",
+  "valor": "O valor do item em Creditos-S. Ex: 150.",
   "slots": "O número de slots de equipamento que o item ocupa (1-5). Deixe como 0 para itens não-equipáveis.",
   "stack": "O número máximo de unidades deste item que podem ser acumuladas em um slot de inventário. Deixe como 1 para itens não-acumuláveis.",
   "efeito": "A descrição mecânica e direta do que o item faz. Seja conciso. Ex: 'Restaura 30 de Vida. Pode ser usado como Ação Bônus.'",

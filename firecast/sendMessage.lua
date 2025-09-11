@@ -43,6 +43,23 @@ local function sendMessage(message, chat, param)
         Log.e("SimulacrumCore", "sendMessage: Parâmetros inválidos.");
         return;
     end
+    if #message > 4000 then
+        local firstNewline = message:find("\n")
+        if firstNewline then
+            local mesafinal = message:sub(1, firstNewline - 1)
+            local mesbfinal = message:sub(firstNewline + 1, #message)
+            while #mesafinal < 3500 do
+                local newline = mesbfinal:find("\n")
+                if not newline then break end
+                mesafinal = mesafinal .. "\n" .. mesbfinal:sub(1, newline - 1)
+                mesbfinal = mesbfinal:sub(newline + 1)
+            end
+            sendMessage(mesafinal, chat, param)
+            sendMessage(mesbfinal, chat, param)
+            return
+        end
+
+    end
     if (param == "gemini") then
         chat:asyncSendStd(message, geminiparams);
     elseif (param == "friend") then

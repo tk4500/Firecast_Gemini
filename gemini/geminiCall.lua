@@ -10,6 +10,7 @@ local function geminiCall(prompt, type, chat)
         function(node)
             Log.i("SimulacrumCore-GeminiCall", "Resposta recebida do Gemini.");
             local responseJson = node;
+            Log.i("SimulacrumCore-GeminiCall", "Resposta bruta: " .. responseJson);
             local sucess, resposta = pcall(Json.decode, responseJson);
             if not sucess then
                 Log.e("SimulacrumCore-GeminiCall", "Erro ao processar resposta do Gemini: " .. responseJson);
@@ -19,6 +20,7 @@ local function geminiCall(prompt, type, chat)
                 Log.e("SimulacrumCore-GeminiCall", "Resposta inválida do Gemini: " .. responseJson);
                 return;
             end
+
             if resposta.candidates[1].content.parts[1].text then
                 local respostaDecodificada = resposta.candidates[1].content.parts[1].text;
                 local mensagem, param = typeConverter(respostaDecodificada, type);
