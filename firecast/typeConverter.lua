@@ -1,6 +1,89 @@
 require("internet.lua");
 local Json = require("json.lua");
-local function aiCastingmsg(efeito)
+local Log = require("log.lua")
+
+local function reformatarTabelaComCampos(text)
+    text = text:gsub("`", "")
+    local outputLines = {}
+    local foiReformatado = false
+    
+    local inTable = false
+    local headers = {}
+    local rawHeaderLine = nil
+
+    local function trim(s)
+        return s:match("^%s*(.-)%s*$")
+    end
+
+    --- Função auxiliar para processar uma linha da tabela (Versão Melhorada).
+    -- Remove as barras das pontas e depois divide a string em células.
+    local function processarLinha(linha)
+        local cells = {}
+        -- 1. Remove a primeira e a última barra para evitar células vazias nas pontas.
+        local innerContent = linha:match("^|?(.-)|?$")
+        
+        -- 2. Divide o conteúdo interno pelo separador '|'.
+        for cell in innerContent:gmatch("([^|]*)") do
+            table.insert(cells, trim(cell))
+        end
+        return cells
+    end
+
+    for line in text:gmatch("[^\r\n]+") do
+        local trimmedLine = trim(line)
+
+        -- 1. DETECÇÃO DA LINHA SEPARADORA (Padrão Corrigido e Mais Robusto)
+        -- Procura por: pipe -> espaço(s) -> dois-pontos -> hífen(s)
+        if trimmedLine:match("^%s*|%s*:%-+") then
+            foiReformatado = true
+            inTable = true
+            
+            if rawHeaderLine then
+                headers = processarLinha(rawHeaderLine)
+                rawHeaderLine = nil
+            end
+
+        -- 2. DETECÇÃO DE LINHA DE TABELA (cabeçalho ou dados)
+        elseif trimmedLine:match("^|") then
+            if inTable then
+                local dataCells = processarLinha(trimmedLine)
+                
+                table.insert(outputLines, "")
+                
+                for i = 1, #headers do
+                    local campo = headers[i] or "Campo"
+                    local valor = dataCells[i] or ""
+                    
+                    if campo ~= "" then
+                        table.insert(outputLines, "| " .. campo .. ": " .. valor)
+                    end
+                end
+            else
+                rawHeaderLine = line
+            end
+
+        -- 3. LINHA COMUM
+        else
+            inTable = false
+            headers = {}
+            
+            if rawHeaderLine then
+                table.insert(outputLines, rawHeaderLine)
+                rawHeaderLine = nil
+            end
+            
+            table.insert(outputLines, line)
+        end
+    end
+
+    if foiReformatado then
+        return table.concat(outputLines, "\n")
+    else
+        return text
+    end
+end
+
+local function aiCastingMsg(efeito)
     if not efeito or not efeito.nome or not efeito.custo or not efeito.descricao then
         Log.e("SimulacrumCore-typeConverter", "Efeito inválido: " .. tostring(efeito));
         return "Efeito inválido. Verifique o formato JSON.";
@@ -30,7 +113,9 @@ local function typeConverter(text, tipo)
 
     Log.i("SimulacrumCore-typeConverter", "Decodificando texto: " .. tostring(text));
     if (tipo == "friend" or tipo == "gemini") then
-        local decoded = tostring(text);
+        text = reformatarTabelaComCampos(tostring(text));
+        Log.i("SimulacrumCore-typeConverter", "Texto reformatado: " .. tostring(text));
+        local decoded = text;
         return decoded, tipo;
     elseif (tipo == "aiCasting") then
         local sucesso, efeito = decodeJson(text);
@@ -38,7 +123,7 @@ local function typeConverter(text, tipo)
             Log.e("SimulacrumCore-typeConverter", "Resposta inválida do Gemini: " .. text);
             return "Resposta inválida do Gemini. Verifique o formato JSON.", "friend";
         end
-        local mensagem = aiCastingmsg(efeito);
+        local mensagem = aiCastingMsg(efeito);
         return mensagem, "friend";
     elseif (tipo == "aiMulticasting") then
         local sucesso, efeito = decodeJson(text);
@@ -50,7 +135,7 @@ local function typeConverter(text, tipo)
         if type(efeito) == "table" and #efeito > 0 then
             local mensagem = "";
             for i, efeitoItem in ipairs(efeito) do
-                local temp = aiCastingmsg(efeitoItem);
+                local temp = aiCastingMsg(efeitoItem);
                 mensagem = mensagem .. temp .. "\n";
             end
             return mensagem, "friend";

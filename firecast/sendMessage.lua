@@ -43,19 +43,27 @@ local function sendMessage(message, chat, param)
         Log.e("SimulacrumCore", "sendMessage: Parâmetros inválidos.");
         return;
     end
-    if #message > 4000 then
+    if #message > 3000 then
+        Log.i("SimulacrumCore", "sendMessage: Mensagem muito longa, dividindo em partes.");
         local firstNewline = message:find("\n")
         if firstNewline then
-            local mesafinal = message:sub(1, firstNewline - 1)
-            local mesbfinal = message:sub(firstNewline + 1, #message)
-            while #mesafinal < 3500 do
-                local newline = mesbfinal:find("\n")
+            local mesAFinal = message:sub(1, firstNewline - 1)
+            local mesBFinal = message:sub(firstNewline + 1, #message)
+            local lineBreakCount = 0
+            while #mesAFinal < 2500 and lineBreakCount < 30 do
+                
+                local newline = mesBFinal:find("\n")
                 if not newline then break end
-                mesafinal = mesafinal .. "\n" .. mesbfinal:sub(1, newline - 1)
-                mesbfinal = mesbfinal:sub(newline + 1)
+                
+                mesAFinal = mesAFinal .. "\n" .. mesBFinal:sub(1, newline - 1)
+                lineBreakCount = lineBreakCount + 1
+                mesBFinal = mesBFinal:sub(newline + 1)
             end
-            sendMessage(mesafinal, chat, param)
-            sendMessage(mesbfinal, chat, param)
+            Log.i("SimulacrumCore", "sendMessage: Enviando partes da mensagem.");
+            Log.i("SimulacrumCore", "Parte 1: " .. mesAFinal);
+            Log.i("SimulacrumCore", "Parte 2: " .. mesBFinal);
+            sendMessage(mesAFinal, chat, param)
+            sendMessage(mesBFinal, chat, param)
             return
         end
 

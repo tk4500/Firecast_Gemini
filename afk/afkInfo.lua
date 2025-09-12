@@ -112,6 +112,7 @@ local function afkinfo(message)
     end
     if (rUtils.startsWith(content, "afkExp")) then
         local login = message.logRec.entity.login;
+        if content == nil then return end
         content = content:gsub("^afkExp%s*", "")
         content = tonumber(content)
         if AFK[login] then
@@ -134,6 +135,10 @@ local function afkinfo(message)
                     local xpGain = math.floor(xpUp * content / 100);
                     sendMessage("Você recebeu " .. xpGain .. " exp de AFK Exp.", message.chat, "friend");
                     local jogador = getPlayer(message.chat, login);
+                    if not jogador then
+                        sendMessage("Jogador não encontrado na mesa.", message.chat, "friend");
+                        return
+                    end
                     local xpAtual = jogador:getBarValue(4);
                     jogador:requestSetBarValue(4, xpAtual + xpGain, nil);
                 end

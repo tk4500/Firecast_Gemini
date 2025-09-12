@@ -39,7 +39,7 @@ local function refine(message)
 
     if tonumber(craftingModifier) == nil then
         sendMessage(
-            " O modificador de Craft precisa ser um número. Use: Refine: <materiais> | (rank) | (aprimoramento) | (modificador numerico)",
+            " O modificador de Craft precisa ser um número. Use: Refine: <materiais> | (rank) | (aprimoramento) | (modificador numérico)",
             message.chat, "friend");
         return;
     end
