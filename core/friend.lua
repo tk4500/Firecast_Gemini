@@ -64,8 +64,10 @@ local function friend(message)
         syncRate = syncRate,
     };
     if tokensUsados > tokens then
-        local prompt = splitContext(contextoJogador);
-        geminiCall(prompt, "aiMulticasting", message.chat);
+        Log.i("SimulacrumCore-Friend", "Tokens excedidos: " .. tokensUsados .. "/" .. tokens);
+        sendMessage(
+            " Tokens excedidos: " .. tokensUsados .. "/" .. tokens ..
+            ". Reduza o prompt ou aumente seu rank.", message.chat, "friend");
     else
         local prompt = aiPrompt.getAiCasting(contextoJogador);
         geminiCall(prompt, "aiCasting", message.chat);

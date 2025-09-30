@@ -28,11 +28,7 @@ local function geminiCall(prompt, type, chat)
                     Log.e("SimulacrumCore-GeminiCall", "Mensagem vazia ou inválida recebida do Gemini.");
                     return;
                 end
-                if chat.room.me.isMestre then
-                    sendMessage(mensagem, chat, param);
-                else
-                    sendMessage(mensagem, chat);
-                end
+                sendMessage(mensagem, chat, param);
             else
                 Log.e("SimulacrumCore-GeminiCall", "Resposta inválida do Gemini: " .. responseJson);
                 return;

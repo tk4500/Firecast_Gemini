@@ -98,6 +98,7 @@ local function aiCastingMsg(efeito)
         efeito.nome ..
         "\n|Rank: " .. efeito.rank .. "\n|Tipo: " .. efeito.tipo ..
         "\n|Custo: " .. efeito.custo .. "\n|Descrição:" .. efeito.descricao
+
 end
 
 local function decodeJson(text)
@@ -150,16 +151,26 @@ local function typeConverter(text, tipo)
             return "Resposta inválida do Gemini. Verifique o formato JSON.", "friend";
         end
         if efeito.sucesso then
+            for item, value in pairs(efeito) do
+                if not value or value == "" then
+                    efeito[item] = "N/A";
+                end
+            end
             local mensagem = "Receita: " .. efeito.nomeReceita .. "\n";
             mensagem = mensagem .. "Materiais necessários: " .. efeito.materiaisReceita .. "\n";
             mensagem = mensagem .. "Item: " .. efeito.nomeItem .. "\n";
             mensagem = mensagem .. "Tipo: " .. efeito.tipoItem .. "\n";
+            mensagem = mensagem .. "Durabilidade: " .. efeito.durabilidade .. "\n";
             mensagem = mensagem .. "Slots: " .. efeito.slots .. "\n";
             mensagem = mensagem .. "Stack: " .. efeito.stack .. "\n";
             mensagem = mensagem .. "Rank: " .. efeito.rankItem .. "\n";
             mensagem = mensagem .. "Valor: " .. efeito.valor .. "\n";
             mensagem = mensagem .. "Efeito: " .. efeito.efeito;
-            if efeito.aviso and efeito.aviso ~= "" then
+
+            if efeito.bonus and efeito.bonus ~= "N/A" then
+                mensagem = mensagem .. "\nBônus: " .. efeito.bonus;
+            end
+            if efeito.aviso and efeito.aviso ~= "N/A" then
                 mensagem = mensagem .. "\nAviso: " .. efeito.aviso;
             end
             return mensagem, "friend";
@@ -184,13 +195,21 @@ local function typeConverter(text, tipo)
         else
             mensagem = "Falha no refinamento.\n";
         end
+        for item, value in pairs(efeito) do
+                if not value or value == "" then
+                    efeito[item] = "N/A";
+                end
+            end
         mensagem = mensagem .. "Item: " .. efeito.nomeItem .. "\n";
         mensagem = mensagem .. "Rank: " .. efeito.rankItem .. "\n";
         mensagem = mensagem .. "Valor: " .. efeito.value .. "\n";
+        mensagem = mensagem .. "Slots: " .. efeito.slots .. "\n";
+        mensagem = mensagem .. "Stack: " .. efeito.stack .. "\n";
+        mensagem = mensagem .. "Durabilidade: " .. efeito.durabilidade .. "\n";
         mensagem = mensagem .. "Tipo: " .. efeito.tipoItem .. "\n";
         mensagem = mensagem .. "Efeito: " .. efeito.efeitoItem;
         mensagem = mensagem .. "\nBônus do Aprimoramento: " .. efeito.bonus;
-        if efeito.aviso and efeito.aviso ~= "" then
+        if efeito.aviso and efeito.aviso ~= "N/A" then
             mensagem = mensagem .. "\nAviso: " .. efeito.aviso;
         end
         return mensagem, "friend";

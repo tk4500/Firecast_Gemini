@@ -277,6 +277,7 @@ function _asyncExecution.entrypoint(mustExecute, fn, arguments, promiseResolutio
 			require("dialogs.lua").showErrorMessage(ret[2]);
 		end;
 			
+---@diagnostic disable-next-line: cast-local-type
 		fn, arguments, promiseResolution, ret = nil, nil, nil, nil;	
 		
 		-- fn, arguments, promiseResolution and ret are used below as parameter just to avoid rdk command line linter warning

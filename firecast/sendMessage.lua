@@ -24,7 +24,7 @@ local sendparams = {
 local geminiparams = {
     impersonation = {
         mode = "character",
-        avatar = "https://blob.firecast.com.br/blobs/DNGTVLGU_3898181/6853782070044e5401b50d5c.jpg",
+        avatar = "https://blob.firecast.com.br/blobs/GMGWTHCP_4038434/68c8d9c789bc75b701b6557a.png",
         gender = "masculine",
         name = "[§B][§K1]Gemini",
     },
@@ -69,9 +69,17 @@ local function sendMessage(message, chat, param)
 
     end
     if (param == "gemini") then
+        if chat.room.me.isMestre then
         chat:asyncSendStd(message, geminiparams);
+        else
+            chat:asyncSendStd("[§I https://blob.firecast.com.br/blobs/HSQUQKOR_4037633/68c84ef589bc75b701b12349.png][20,20]:".. message);
+        end
     elseif (param == "friend") then
+        if chat.room.me.isMestre then
         chat:asyncSendStd(message, sendparams);
+        else
+            chat:asyncSendStd("[§I ".. sendparams.impersonation.avatar .."][20,20]:".. message);
+        end
     elseif not param then
         chat:asyncSendStd(message);
     else

@@ -12,7 +12,7 @@ end
 
 local _LuaForms = {};
 
---[ Lista de forms que não estao sendo utilizados, e podem ser reusados (antes que o garbage colector faca sua parte) ]--
+--[ Lista de forms que não estão sendo utilizados, e podem ser reusados (antes que o garbage colector faca sua parte) ]--
 local _CachedFreeForms = {};  
 
 function _eve_Forms_CriarForm(formName)

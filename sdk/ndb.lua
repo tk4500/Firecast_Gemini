@@ -14,7 +14,7 @@ function localNDB.ndbFromHandle(handle)
 
 	if handle ~= nil then
 		ctrl = objs.tryFindFromHandle(handle);
-		
+
 		if ctrl ~= nil then
 			return ctrl;
 		end;
@@ -24,8 +24,8 @@ function localNDB.ndbFromHandle(handle)
 
 	ctrl = objs.objectFromHandle(handle);
 	ctrl.__dbFlag = true;
-	
-	objs.registerHandle(handle, ctrl);	
+
+	objs.registerHandle(handle, ctrl);
 	return ctrl;
 end;
 
@@ -33,8 +33,8 @@ end;
 
 localNDB.Node = objs.newClass();
 
-function localNDB.Node:initialize()	
-	rawset(self, "__nodeFlag", true);	
+function localNDB.Node:initialize()
+	rawset(self, "__nodeFlag", true);
 end;
 
 function localNDB.Node:findChild(nodeName)
@@ -58,11 +58,11 @@ function localNDB.Node:getAttribute(name)
 end;
 
 function localNDB.Node:setAttribute(name, value)
-	return _ndb_setAttribute(self.handle, name, value);	
+	return _ndb_setAttribute(self.handle, name, value);
 end;
 
 function localNDB.Node:clearNode()
-	return _obj_invoke(self.handle, "ClearNode");			
+	return _obj_invoke(self.handle, "ClearNode");
 end;
 
 function localNDB.Node:getAttributesNames()
@@ -70,7 +70,7 @@ function localNDB.Node:getAttributesNames()
 end;
 
 function localNDB.Node:getAllAttributes()
-	return _ndb_getAllAttributes(self.handle);	
+	return _ndb_getAllAttributes(self.handle);
 end;
 
 function localNDB.Node:getChildCount()
@@ -83,12 +83,12 @@ end;
 
 function localNDB.Node:getAllChilds()
 	local ret = {};
-	local count = self:getChildCount();			
-	
+	local count = self:getChildCount();
+
 	for i = 0, count - 1, 1 do
 		ret[i + 1] = self:getChild(i);
 	end;
-	
+
 	return ret;
 end;
 
@@ -114,19 +114,19 @@ end;
 
 function localNDB.Node:importXML(xmlString)
 	return _obj_invoke(self.handle, "ImportXMLString", (tostring(xmlString)) or "");
-end;	
-		
+end;
+
 function localNDB.Node:getLocalID()
 	return _obj_getProp(self.handle, "LocalID");
-end;	
+end;
 
 function localNDB.Node:beginUpdate()
 	_obj_invoke(self.handle, "BeginUpdate");
-end;	
+end;
 
 function localNDB.Node:endUpdate()
 	_obj_invoke(self.handle, "EndUpdate");
-end;		
+end;
 
 function localNDB.Node:getState()
 	return _obj_getProp(self.handle, "ProviderState");
@@ -138,7 +138,7 @@ end;
 
 function localNDB.Node:getPermission(selKind, selId, permission)
 	return _obj_invokeEx(self.handle, "GetPermission", selKind, selId, permission);
-end;	
+end;
 
 function localNDB.Node:testPermission(permission)
 	return _obj_invokeEx(self.handle, "TestPermission", permission);
@@ -154,17 +154,17 @@ function localNDB.nodeFromHandle(nodeHandle)
 	if nodeHandle == nil then
 		return nil;
 	end;
-	
+
 	node = objs.tryFindFromHandle(nodeHandle);
-	
+
 	if node ~= nil then
 		return node;
 	end;
-	
+
 	node = localNDB.Node.fromHandle(nodeHandle);
 	node.__nodeDatabase = localNDB.ndbFromHandle(_ndb_getNDBHandleOfNode(nodeHandle));
-	
-	objs.registerHandle(nodeHandle, node);		
+
+	objs.registerHandle(nodeHandle, node);
 	return node;
 end;
 
@@ -172,42 +172,42 @@ function localNDB.copyNodeToAnother(nodeDest, nodeSrc, ctxCtrl)
 	if nodeDest.handle == nodeSrc.handle then
 		return;
 	end;
-	
+
 	if ctxCtrl == nil then
 		ctxCtrl = {}; -- avoid circular reference
 	end;
-	
+
 	if ctxCtrl[nodeSrc.handle] then
 		return;
 	else
-		ctxCtrl[nodeSrc.handle] = true; 
-	end;				
-	
+		ctxCtrl[nodeSrc.handle] = true;
+	end;
+
 	nodeDest:beginUpdate();
-	
+
 	tryFinally(
 		function()
 			nodeDest:clearNode();
-			
+
 			local allAtts = nodeSrc:getAllAttributes();
-			
+
 			for k, v in pairs(allAtts) do
 				localNDB.assignPropValueToNode(nodeDest, k, v);
 			end;
-			
+
 			local allChilds = nodeSrc:getAllChilds();
 			local newChild, srcChild;
-			
+
 			for _, v in pairs(allChilds) do
 				srcChild = v;
-				
+
 				if not ctxCtrl[srcChild.handle] then
 					newChild = nodeDest:addChild(srcChild:getName());
 					localNDB.copyNodeToAnother(newChild, srcChild, ctxCtrl);
 				end;
 			end;
 		end,
-		
+
 		function()
 			nodeDest:endUpdate();
 		end);
@@ -223,7 +223,7 @@ end;
 
 function localNDB.assignPropValueToNode(node, prop, value)
 	prop = tostring(prop);
-		
+
 	-- Limpando propriedade
 	if value == nil then
 		_obj_invoke(node.handle, "RemoveAtributeAndChildNodes", prop);
@@ -232,34 +232,34 @@ function localNDB.assignPropValueToNode(node, prop, value)
 
 	if type(value) == "function" then
 		-- Tipo inválido para setar
-		require("locale.lua");		
+		require("locale.lua");
 		error(string.format(lang("sdk3.err.ndb.functionAssign"), tostring(prop)));
 		return;
 	end;
-	
+
 	if type(value) == "table" then
 		-- Setando um Table/Child Node
-		_obj_invoke(node.handle, "BeginUpdate");		
-		
-		node:setAttribute(prop, nil);  -- remover atributo de mesmo nome se existir	
+		_obj_invoke(node.handle, "BeginUpdate");
+
+		node:setAttribute(prop, nil); -- remover atributo de mesmo nome se existir	
 		local childNode = node:findChild(prop);
-		
+
 		if childNode == nil then
 			childNode = node:addChild(prop); -- Nodo não existe, vamos criar um
 		end;
-				
+
 		if rawget(value, "__nodeFlag") then
 			-- é um node
 			localNDB.copyNodeToAnother(childNode, value);
 		elseif rawget(value, "__nodeFacadeFlag") then
 			-- é um node facade
-			localNDB.copyNodeToAnother(childNode, value.__node);	
+			localNDB.copyNodeToAnother(childNode, value.__node);
 		else
 			-- Aparentemente é um table comum
-			localNDB.copyTableToNode(childNode, value);			
-		end;	
-		
-		_obj_invoke(node.handle, "EndUpdate");	
+			localNDB.copyTableToNode(childNode, value);
+		end;
+
+		_obj_invoke(node.handle, "EndUpdate");
 	else
 		-- Setando um Atributo
 		--_obj_invoke(node.handle, "BeginUpdate");
@@ -270,65 +270,65 @@ function localNDB.assignPropValueToNode(node, prop, value)
 end;
 
 local NodeFacadeMetatable = {
-	--[[ getter padrão de propriedades dos objetos. Chamado quando tentou gettar uma propriedade que não existe ]]--	
+	--[[ getter padrão de propriedades dos objetos. Chamado quando tentou dar get uma propriedade que não existe ]] --	
 	__index = function(table, key)
 		local v = rawget(table, key);
-				
+
 		if (v ~= nil) then
 			return v;
 		end;
-		
+
 		local node = rawget(table, "__node");
-		
+
 		if node ~= nil then
 			local childNode = node:findChild(key);
-			
+
 			if childNode ~= nil then
 				-- Achamos um child node com este nome.
 				return childNode:getFacade();
 			end;
-			
+
 			return node:getAttribute(key);
-		end;		
-		
+		end;
+
 		return nil;
 	end,
-	
-	--[[ setter padrão de propriedades dos objetos. Chamado quando tentou settar uma propriedade que não existe ]]--	
+
+	--[[ setter padrão de propriedades dos objetos. Chamado quando tentou dar set uma propriedade que não existe ]] --	
 	__newindex = function(table, key, value)
 		local node = rawget(table, "__node");
-		
-		if node ~= nil then		
+
+		if node ~= nil then
 			localNDB.assignPropValueToNode(node, key, value);
-		end;			
-	end,	
+		end;
+	end,
 };
 
 function localNDB.newNodeFacadeFor(nodeObj)
-	local nodeFacade = {__node = nodeObj, __nodeFacadeFlag = true};
-	setmetatable(nodeFacade, NodeFacadeMetatable);	
+	local nodeFacade = { __node = nodeObj, __nodeFacadeFlag = true };
+	setmetatable(nodeFacade, NodeFacadeMetatable);
 	return nodeFacade;
 end;
 
 function localNDB.openNode(nodeHandle)
 	local nodeObj;
-	
+
 	if nodeHandle == nil then
 		return nil;
 	end;
-		
+
 	nodeObj = objs.tryFindFromHandle(nodeHandle);
-	
+
 	if nodeObj == nil then
 		nodeObj = localNDB.nodeFromHandle(nodeHandle);
 	end;
-	
+
 	return nodeObj;
 end;
 
 function localNDB.openNodeFacade(nodeHandle)
 	local nodeObj = localNDB.openNode(nodeHandle);
-	
+
 	if nodeObj ~= nil then
 		return nodeObj:getFacade();
 	else
@@ -344,7 +344,7 @@ function _export_ndb_openNodeFacade(nodeHandle)
 	return localNDB.openNodeFacade(nodeHandle);
 end;
 
--- Funções exportadas 
+-- Funções exportadas
 
 function ndb.openNodeDatabaseFromHandle(nodeDatabaseHandle)
 	return localNDB.ndbFromHandle(nodeDatabaseHandle);
@@ -352,31 +352,34 @@ end;
 
 function ndb.load(fileName, userName)
 	local expandedName = vhd.expandFileName(fileName);
-	
+
 	if #expandedName > 0 then
 		if string.sub(expandedName, 1, 1) ~= "/" then
 			expandedName = "/" .. expandedName;
 		end;
 	end;
-	
+
 	if type(userName) ~= "string" then
 		userName = "";
 	end;
-	
+
 	local openDB = _localOpenNDBs[expandedName];
-	
+
 	if openDB ~= nil then
 		return ndb.getRoot(openDB);
 	end;
-	
+
 	openDB = ndb.openNodeDatabaseFromHandle(_obj_newObject("TLocalLuaNodeDatabase"));
-	_obj_invoke(openDB.handle, "SetupLocalFile", expandedName, userName);		
-	_localOpenNDBs[expandedName] = openDB;	
+	if openDB == nil then
+		return nil;
+	end
+	_obj_invoke(openDB.handle, "SetupLocalFile", expandedName, userName);
+	_localOpenNDBs[expandedName] = openDB;
 	return ndb.getRoot(openDB);
 end;
 
 function ndb.newMemNodeDatabase(initialContent)
-	local openDB = ndb.openNodeDatabaseFromHandle(_obj_newObject("TLuaMemoryNodeDatabase", initialContent));	
+	local openDB = ndb.openNodeDatabaseFromHandle(_obj_newObject("TLuaMemoryNodeDatabase", initialContent));
 	return ndb.getRoot(openDB);
 end;
 
@@ -384,11 +387,11 @@ function ndb.getRoot(node)
 	if type(node) ~= "table" then
 		return nil;
 	end;
-	
+
 	if node.__nodeFlag then
 		return localNDB.openNodeFacade(_ndb_getTheRoot(node.handle));
 	elseif node.__nodeFacadeFlag then
-		return ndb.getRoot(rawget(node, "__node"));	
+		return ndb.getRoot(rawget(node, "__node"));
 	elseif node.__dbFlag then
 		return localNDB.openNodeFacade(_ndb_getRoot(node.handle));
 	else
@@ -400,11 +403,11 @@ function ndb.getParent(node)
 	if type(node) ~= "table" then
 		return nil;
 	end;
-	
+
 	if node.__nodeFlag then
 		return localNDB.openNodeFacade(_ndb_getParent(node.handle));
 	elseif node.__nodeFacadeFlag then
-		return ndb.getParent(rawget(node, "__node"));	
+		return ndb.getParent(rawget(node, "__node"));
 	else
 		return nil;
 	end;
@@ -420,15 +423,15 @@ function ndb.getChildNodes(nodeObj)
 	end;
 
 	local node = localNDB.getNodeObjectFromFacade(nodeObj);
-	
+
 	if node ~= nil then
 		local nodesCtrls = node:getAllChilds();
 		local ret = {};
-		
+
 		for i = 1, #nodesCtrls, 1 do
 			ret[i] = nodesCtrls[i]:getFacade();
 		end;
-		
+
 		return ret;
 	else
 		return {};
@@ -441,7 +444,7 @@ function ndb.getAttributes(nodeObj)
 	end;
 
 	local node = localNDB.getNodeObjectFromFacade(nodeObj);
-	
+
 	if node ~= nil then
 		return node:getAllAttributes();
 	else
@@ -453,7 +456,7 @@ function ndb.isNodeObject(value)
 	if type(value) ~= "table" then
 		return false;
 	end;
-	
+
 	return rawget(value, "__nodeFacadeFlag");
 end;
 
@@ -471,7 +474,7 @@ function ndb.createChildNode(nodeObj, childName)
 	end;
 
 	local node = localNDB.getNodeObjectFromFacade(nodeObj);
-	
+
 	if node ~= nil then
 		return node:addChild(childName):getFacade();
 	else
@@ -485,7 +488,7 @@ function ndb.deleteNode(nodeObj)
 	end;
 
 	local node = localNDB.getNodeObjectFromFacade(nodeObj);
-	
+
 	if node ~= nil then
 		node:delete();
 	end;
@@ -497,7 +500,7 @@ function ndb.clearNode(nodeObj)
 	end;
 
 	local node = localNDB.getNodeObjectFromFacade(nodeObj);
-	
+
 	if node ~= nil then
 		node:clearNode();
 	end;
@@ -509,7 +512,7 @@ function ndb.getNodeName(nodeObj)
 	end;
 
 	local node = localNDB.getNodeObjectFromFacade(nodeObj);
-	
+
 	if node ~= nil then
 		return node:getName();
 	else
@@ -523,7 +526,7 @@ function ndb.getPersistedAttributeValue(nodeObj, attributeName)
 	end;
 
 	local node = localNDB.getNodeObjectFromFacade(nodeObj);
-	
+
 	if node ~= nil then
 		return node:getPersistedAttributeValue(attributeName);
 	else
@@ -538,7 +541,7 @@ function ndb.exportXML(nodeObj)
 	end;
 
 	local node = localNDB.getNodeObjectFromFacade(nodeObj);
-	
+
 	if node ~= nil then
 		return node:exportXML();
 	else
@@ -554,7 +557,7 @@ function ndb.importXML(nodeObj, xmlString)
 	end;
 
 	local node = localNDB.getNodeObjectFromFacade(nodeObj);
-	
+
 	if node ~= nil then
 		return node:importXML(xmlString);
 	else
@@ -569,19 +572,19 @@ function ndb.copy(destNodeObj, srcNodeObj)
 		error(aLocale.lang("sdk3.err.ndb.func.copy.invalidPar2"));
 	end;
 
-	local srcNode;	
+	local srcNode;
 	local dstNode = localNDB.getNodeObjectFromFacade(destNodeObj);
-	
+
 	if srcNodeObj ~= nil then
 		srcNode = localNDB.getNodeObjectFromFacade(srcNodeObj);
 	else
 		srcNode = nil;
-	end;	
-	
-	if dstNode ~= nil then	
-		if srcNode ~= nil then	
+	end;
+
+	if dstNode ~= nil then
+		if srcNode ~= nil then
 			local xmlString = srcNode:exportXML();
-			dstNode:importXML(xmlString);			
+			dstNode:importXML(xmlString);
 		else
 			dstNode:clearNode();
 		end;
@@ -594,7 +597,7 @@ end;
 function ndb.beginUpdate(nodeObj)
 	if nodeObj ~= nil then
 		local node = localNDB.getNodeObjectFromFacade(nodeObj);
-		
+
 		if node ~= nil then
 			node:beginUpdate();
 		end;
@@ -604,7 +607,7 @@ end;
 function ndb.endUpdate(nodeObj)
 	if nodeObj ~= nil then
 		local node = localNDB.getNodeObjectFromFacade(nodeObj);
-		
+
 		if node ~= nil then
 			node:endUpdate();
 		end;
@@ -614,88 +617,88 @@ end;
 function ndb.getState(nodeObj)
 	if nodeObj ~= nil then
 		local node = localNDB.getNodeObjectFromFacade(nodeObj);
-		
+
 		if node ~= nil then
-			return node:getState();		
-		end;	
+			return node:getState();
+		end;
 	end;
-	
-	return "closed";	
-end;	
+
+	return "closed";
+end;
 
 local _observerBib = nil;
 
 function ndb.newObserver(nodeObj)
 	if nodeObj ~= nil then
 		local node = localNDB.getNodeObjectFromFacade(nodeObj);
-		
+
 		if node ~= nil then
 			if _observerBib == nil then
 				_observerBib = require("ndb_observer.dlua");
 			end;
-		
+
 			return _observerBib.newObserver(node.handle, nodeObj);
-		end;	
+		end;
 	end;
-	
-	return nil;		
+
+	return nil;
 end;
 
 function ndb.setPermission(node, selKind, selId, permission, allowance)
 	if node ~= nil then
 		local nodeObj = localNDB.getNodeObjectFromFacade(node);
-		
+
 		if nodeObj ~= nil then
-			return nodeObj:setPermission(tostring(selKind), tostring(selId), tostring(permission), allowance);			
-		end;	
+			return nodeObj:setPermission(tostring(selKind), tostring(selId), tostring(permission), allowance);
+		end;
 	end;
 end;
 
 function ndb.getPermission(node, selKind, selId, permission)
 	if node ~= nil then
 		local nodeObj = localNDB.getNodeObjectFromFacade(node);
-		
+
 		if nodeObj ~= nil then
-			return nodeObj:getPermission(tostring(selKind), tostring(selId), tostring(permission));			
-		end;	
+			return nodeObj:getPermission(tostring(selKind), tostring(selId), tostring(permission));
+		end;
 	end;
-	
+
 	return nil;
 end;
 
 function ndb.testPermission(node, permission)
 	if node ~= nil then
 		local nodeObj = localNDB.getNodeObjectFromFacade(node);
-		
+
 		if nodeObj ~= nil then
-			return nodeObj:testPermission(tostring(permission));			
-		end;	
+			return nodeObj:testPermission(tostring(permission));
+		end;
 	end;
-	
+
 	return false;
 end;
 
 function ndb.enumPermissions(node)
 	if node ~= nil then
 		local nodeObj = localNDB.getNodeObjectFromFacade(node);
-		
+
 		if nodeObj ~= nil then
-			return nodeObj:enumPermissions();			
-		end;	
-	end;	
-	
+			return nodeObj:enumPermissions();
+		end;
+	end;
+
 	return {};
 end;
 
 function ndb.resetPermissions(node)
 	if node ~= nil then
 		local nodeObj = localNDB.getNodeObjectFromFacade(node);
-		
+
 		if nodeObj ~= nil then
 			_obj_invoke(nodeObj.handle, "ResetPermissions");
-		end;	
-	end;	
-	
+		end;
+	end;
+
 	return {};
 end;
 
@@ -704,54 +707,54 @@ local _transactionBib = nil;
 function ndb.newTransaction(nodeObj)
 	if nodeObj ~= nil then
 		local node = localNDB.getNodeObjectFromFacade(nodeObj);
-		
+
 		if node ~= nil then
 			if _transactionBib == nil then
 				_transactionBib = require("ndb_transaction.dlua");
 			end;
-		
+
 			return _transactionBib.newTransaction(node.handle, nodeObj);
-		end;	
+		end;
 	end;
-	
-	return nil;	
+
+	return nil;
 end;
 
 function ndb.pushTransaction(nodeObj, transaction)
 	if nodeObj ~= nil then
 		local node = localNDB.getNodeObjectFromFacade(nodeObj);
-		
+
 		if node ~= nil then
 			local trHandle;
-		
+
 			if transaction ~= nil then
 				trHandle = transaction.handle or 0;
 			else
 				trHandle = 0;
 			end;
-			
-			_obj_invoke(node.handle, "PushTransaction", trHandle);			
-		end;	
+
+			_obj_invoke(node.handle, "PushTransaction", trHandle);
+		end;
 	end;
 end;
 
 function ndb.popTransaction(nodeObj)
 	if nodeObj ~= nil then
 		local node = localNDB.getNodeObjectFromFacade(nodeObj);
-		
-		if node ~= nil then		
-			_obj_invoke(node.handle, "PopTransaction");			
-		end;	
+
+		if node ~= nil then
+			_obj_invoke(node.handle, "PopTransaction");
+		end;
 	end;
 end;
 
 function ndb.getServerUTCTime(nodeObj)
 	if nodeObj ~= nil then
 		local node = localNDB.getNodeObjectFromFacade(nodeObj);
-		
-		if node ~= nil then		
-			return _obj_getProp(node.handle, "ServerUTCTime");			
-		end;	
+
+		if node ~= nil then
+			return _obj_getProp(node.handle, "ServerUTCTime");
+		end;
 	end;
 end;
 
@@ -759,14 +762,14 @@ function ndb.editPermissions(nodeObj)
 	if nodeObj == nil then
 		return;
 	end;
-	
+
 	local node = localNDB.getNodeObjectFromFacade(nodeObj);
-	
-	if node ~= nil then		
+
+	if node ~= nil then
 		local plugins = require("plugins.lua");
-		local ndbmodule = "RRPG.FIRECAST.FMXModule";	
-		plugins.sendPM(ndbmodule, "ndbHost:editPermissions", {localNodeID=node:getLocalID()}, nil, nil);		
-	end;		
+		local ndbmodule = "RRPG.FIRECAST.FMXModule";
+		plugins.sendPM(ndbmodule, "ndbHost:editPermissions", { localNodeID = node:getLocalID() }, nil, nil);
+	end;
 end;
 
 function ndb.loadNodeFromLocalID(localNodeID)
@@ -778,109 +781,111 @@ local _Serializer = nil;
 function ndb.broadcastMessage(nodeObj, messageId, message, loopBack)
 	if nodeObj ~= nil then
 		local node = localNDB.getNodeObjectFromFacade(nodeObj);
-		
-		if node ~= nil then		
+
+		if node ~= nil then
 			if _Serializer == nil then
 				_Serializer = require("utils.serializer.dlua");
 			end;
-		
+
 			if loopBack == nil then
 				loopBack = false;
 			end;
-		
-			_obj_invokeEx(node.handle, "LUABroadcastMessage", messageId, _Serializer.serialize(message), loopBack);			
-		end;	
+
+			_obj_invokeEx(node.handle, "LUABroadcastMessage", messageId, _Serializer.serialize(message), loopBack);
+		end;
 	end;
 end;
 
 function ndb.newBroadcastListener(nodeObj, messageId, callback)
 	if nodeObj ~= nil then
 		local node = localNDB.getNodeObjectFromFacade(nodeObj);
-		
-		if node ~= nil then			
+
+		if node ~= nil then
 			local obj = objs.objectFromHandle(_obj_newObject("TLuaNDBBroadcastReceiver"));
 			obj.eves = obj.eves or {};
-			obj.eves["onReceiveBroadcast"] = "sender, messageId, messageText";	
-			
+			obj.eves["onReceiveBroadcast"] = "sender, messageId, messageText";
+
 			_obj_invoke(obj.handle, "SetupReceiver", node.handle, messageId or "");
-			
-			obj.onReceiveBroadcast = function(sender, returnedMessageId, messageText)			
-										if callback ~= nil then										
-											if _Serializer == nil then
-												_Serializer = require("utils.serializer.dlua");
-											end;										
-										
-											local success, message = pcall(_Serializer.deserialize, messageText);
-											
-											if not success then
-												message = messageText;
-											end;
-										
-											callback(sender, returnedMessageId, message);
-										end;
-									end;	
-			return obj;		
-		end;	
+
+			obj.onReceiveBroadcast = function(sender, returnedMessageId, messageText)
+				if callback ~= nil then
+					if _Serializer == nil then
+						_Serializer = require("utils.serializer.dlua");
+					end;
+
+					local success, message = pcall(_Serializer.deserialize, messageText);
+
+					if not success then
+						message = messageText;
+					end;
+
+					callback(sender, returnedMessageId, message);
+				end;
+			end;
+			return obj;
+		end;
 	end;
 end;
 
-function ndb.onReady(nodeObj, callback, failCallback)	
+function ndb.onReady(nodeObj, callback, failCallback)
 	local function scheduleFailReturn()
 		if failCallback ~= nil then
 			setTimeout(failCallback, 1, nil);
 		end;
 	end;
-		
+
 	if nodeObj == nil then
-		scheduleFailReturn();		
-		return;		
-	end;	
-	
+		scheduleFailReturn();
+		return;
+	end;
+
 	local state = ndb.getState(nodeObj);
-	
+
 	if state == "open" then
 		-- Already loaded
-		
+
 		if callback ~= nil then
 			setTimeout(callback, 1, nodeObj);
 		end;
-		
+
 		return;
 	end;
-	
-	-- Not loaded yet, letz monitor
+
+	-- Not loaded yet, lets monitor
 	local nodeInternObj = localNDB.getNodeObjectFromFacade(nodeObj);
 	local ndbObj = localNDB.ndbFromHandle(_ndb_getNDBHandleOfNode(nodeInternObj.handle));
 	local jaNotificou = false;
 	local listenerProvider = nil;
 	local listenerLoaded = nil;
-	
+
 	local function checkState()
 		if not jaNotificou then
 			state = ndb.getState(nodeObj);
-		
+
 			if state == "open" then
 				jaNotificou = true;
-				
+
 				if callback ~= nil then
 					setTimeout(callback, 1, nodeObj);
 				end;
 			elseif state == "closed" then
-				jaNotificou = true;					
+				jaNotificou = true;
 				scheduleFailReturn();
 			end;
-			
+
 			if jaNotificou then
-				ndbObj:removeEventListener(listenerProvider);
-				ndbObj:removeEventListener(listenerLoaded);
-			end;						
-		end;						
+				if ndbObj ~= nil then
+					ndbObj:removeEventListener(listenerProvider);
+					ndbObj:removeEventListener(listenerLoaded);
+				end;
+			end;
+		end;
 	end;
-			
-	listenerProvider = ndbObj:addEventListener("OnProviderStateChange", checkState);
-	listenerLoaded = ndbObj:addEventListener("OnLoaded", checkState);
-			
-	checkState();	
+	if ndbObj ~= nil then
+		listenerProvider = ndbObj:addEventListener("OnProviderStateChange", checkState);
+		listenerLoaded = ndbObj:addEventListener("OnLoaded", checkState);
+	end;
+	checkState();
 end;
 
 -- OVERRIDE de funções nativas para funcionar com o NDB
@@ -890,26 +895,26 @@ local oldIPairsFunc = ipairs;
 
 local function _prepareNodeFacadePairsState(nodeFacade)
 	local node = nodeFacade.__node;
-	local state = node:getAllAttributes();	
-	
+	local state = node:getAllAttributes();
+
 	local childs = node:getAllChilds();
-	
+
 	for _, v in oldPairsFunc(childs) do
 		local name = v:getName();
 		local nodeForName = node:findChild(name);
-		
+
 		if nodeForName ~= nil then
 			state[name] = nodeForName;
 		end;
 	end;
-	
+
 	return state;
 end;
 
 function pairs(obj)
 	if (obj ~= nil) and rawget(obj, "__nodeFacadeFlag") then
-		-- Node Façade		
-		local state = _prepareNodeFacadePairsState(obj);			
+		-- Node Facade		
+		local state = _prepareNodeFacadePairsState(obj);
 		return oldPairsFunc(state);
 	else
 		return oldPairsFunc(obj);
@@ -918,8 +923,8 @@ end;
 
 function ipairs(obj)
 	if (obj ~= nil) and rawget(obj, "__nodeFacadeFlag") then
-		-- Node Façade		
-		local state = _prepareNodeFacadePairsState(obj);			
+		-- Node Facade		
+		local state = _prepareNodeFacadePairsState(obj);
 		return oldIPairsFunc(state);
 	else
 		return oldIPairsFunc(obj);

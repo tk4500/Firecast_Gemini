@@ -458,7 +458,7 @@ function BTreeIN:innerDeletePucharDeCima(pagina, indice)
 		tempChave = oPai.chaves[pagina.indiceNoPai - 1].valorChave;
 		tempValor = oPai.chaves[pagina.indiceNoPai - 1].valor;
 		
-		-- Remover a chave do indice abrinco espaco no inicio para caber a chave do pai + chaves do irmao da esquerda
+		-- Remover a chave do indice abrindo espaco no inicio para caber a chave do pai + chaves do irmao da esquerda
 		qtACopiar = irmaoEsq.countChaves;
 		
 		-- Copiar os que estão do lado direito da chave que vai ser apagada

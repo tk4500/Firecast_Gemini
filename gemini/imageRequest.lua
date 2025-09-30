@@ -40,11 +40,7 @@ local function uploadImagemGerada(jsonTable, chat, prompt)
         function(fireItem)
             if fireItem and fireItem.url then
                 local msg = "[§I" .. fireItem.url .. "]"
-                if chat.room.me.isMestre then
-                    sendMessage(msg, chat, "gemini")
-                else
-                    sendMessage("Gemini: " .. msg, chat)
-                end
+                sendMessage(msg, chat, "gemini")
             else
                 Log.e("SimulacrumCore-Upload", "Erro no upload para o FireDrive: fireItem inválido.")
                 sendMessage("Gemini: Erro ao fazer upload da imagem gerada.", chat)

@@ -84,7 +84,6 @@ Agora, analise o estado do combate e a ficha do inimigo. Decida a melhor ação 
     return prompt;
 end
 
-
 function aiPrompt.getEncounterPrompt(encounterData)
     local prompt = [[
 Você é um Mestre de Jogo (GM) auxiliar para o RPG de mesa 'Simulacrum'. Sua tarefa é gerar um encontro de combate aleatório e balanceado em formato JSON, baseado nos dados do grupo, um nível de dificuldade, e um número de inimigos.
@@ -97,9 +96,9 @@ O JSON de resposta deve ter a seguinte estrutura:
   "enemies": [] // Array de inimigos, cada um com as seguintes chaves:
     {
         nome: string,
-        nick: char[3], // String de 3 caracteres representando o inimigo, deve ser único e não repetido. ex: "GT1", "GT2", "GT3". 
-        ameaca: ]]..(encounterData.difficulty or 5)..[[,
-        nivel: ]]..(encounterData.enemyLvl or 1)..[[,
+        nick: char[3], // String de 3 caracteres representando o inimigo, deve ser único e não repetido. ex: "GT1", "GT2", "GT3".
+        ameaca: ]] .. (encounterData.difficulty or 5) .. [[,
+        nivel: ]] .. (encounterData.enemyLvl or 1) .. [[,
         xpDrop: number,
         moneyDrop: number, // Quantidade de dinheiro que o inimigo solta ao ser derrotado em Creditos-S.
         itemDrop: [] // Array de itens, cada um com as seguintes chaves:
@@ -112,7 +111,7 @@ O JSON de resposta deve ter a seguinte estrutura:
             craft?: string, // Caso seja um diagrama, o craft é a receita do diagrama.
             custo?: string, // Custo de ativação do item, se aplicavel.
             descricao: string // Descrição do item e seus efeitos.
-            } 
+            }
         ,
         desc: string, // Descrição do inimigo, usada para definir o tema e a personalidade.
         vidaMax: number, // vida máxima do inimigo.
@@ -134,15 +133,15 @@ O JSON de resposta deve ter a seguinte estrutura:
                 custo: string,
                 descricao: string
                 uses?: number
-            } 
+            }
         ,
     }
 }
 
 -- [CONTEXTO DO ENCONTRO] --
-3.  **Numero de Inimigos**: "]] .. encounterData.numEnemies .. "\n"..[["
-4.  **Numero de Jogadores**: "]] .. encounterData.numPlayers .. "\n"..[["
-5.  **Nivel do Inimigo**: ]] .. encounterData.enemyLvl .. "\n"..[[
+3.  **Numero de Inimigos**: "]] .. encounterData.numEnemies .. "\n" .. [["
+4.  **Numero de Jogadores**: "]] .. encounterData.numPlayers .. "\n" .. [["
+5.  **Nivel do Inimigo**: ]] .. encounterData.enemyLvl .. "\n" .. [[
 6.  **Players**:
 ]] .. encounterData.players .. [[
 -- [FIM DO CONTEXTO] --
@@ -282,6 +281,9 @@ Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, sem t
   "nomeItem": "O nome do item aprimorado com seu novo modificador. Ex: '<Espada Longa +1>'.",
   "rankItem": "O rank do item, que NÃO MUDA. Ex: '<Basic>'.",
   "tipoItem": "O tipo do item, que NÃO MUDA. Ex: 'Equipamento (Arma)'.",
+  "slots": "O número de slots do item, que NÃO MUDA.",
+  "stack": "O stack máximo do item, que NÃO MUDA.",
+  "durabilidade": "A durabilidade do item, que NÃO MUDA.",
   "value": "O novo valor do item em Creditos-S, refletindo seu novo nível de aprimoramento.",
   "efeitoItem": "a descrição original do item, sem o aprimoramento",
   "bonus": "a descrição do bonus gerado a partir do aprimoramento, ex: '(+2): +10 de dano adicional' siga as regras de bônus de aprimoramento.",
@@ -303,9 +305,12 @@ Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais, sem t
 ---
 
 -- [CONTEXTO DO APRIMORAMENTO] --
-- **Resultado do Processo:** ]] .. contextoJogador.craftingResult .. [[ *(Valores possíveis: "SUCESSO", "FALHA", "SUCESSO_CRITICO")*
-- **Materiais Usados:** ]] .. contextoJogador.materials .. [[ *(String de texto contendo o item a ser aprimorado e os catalisadores)*
-- **Nível de Aprimoramento Alvo:** +]] .. contextoJogador.ench .. [[ *(O nível de refinamento resultante do aprimoramento, seja uma falha ou sucesso)*
+- **Resultado do Processo:** ]] ..
+    contextoJogador.craftingResult .. [[ *(Valores possíveis: "SUCESSO", "FALHA", "SUCESSO_CRITICO")*
+- **Materiais Usados:** ]] ..
+    contextoJogador.materials .. [[ *(String de texto contendo o item a ser aprimorado e os catalisadores)*
+- **Nível de Aprimoramento Alvo:** +]] ..
+    contextoJogador.ench .. [[ *(O nível de refinamento resultante do aprimoramento, seja uma falha ou sucesso)*
 - **Rank do Item:** ]] .. contextoJogador.rankAlvo .. [[
 - **Nível do Jogador:** ]] .. contextoJogador.nivel .. [[
 - **Classe do Jogador:** ]] .. contextoJogador.classe .. [[
@@ -364,13 +369,15 @@ Você DEVE SEMPRE responder com um único objeto JSON válido e nada mais. Não 
  "sucesso": true,
  "nomeReceita": "O nome do diagrama descoberto. Ex: 'Diagrama: Poção de Cura Menor'.",
  "materiaisReceita": "Os materiais necessários para criar o item, copie exatamente o que vai estar descrito mais a frente. Ex: 'Ervas Mágicas, Água Purificada'.",
-  "nomeItem": "O nome do item criado, incluindo o rank. Ex: '<Poção de Cura>'.",
+  "nomeItem": "O nome do item criado, incluindo o rank. Ex: '<Poção de Cura>' ou '<Poção de Cura +1>'.",
   "rankItem": "O rank do item. Ex: 'Common', '<Basic>', '<<Extra>>'.",
   "tipoItem": "A categoria do item. Ex: 'Consumível', 'Arma', 'Armadura', 'Acessório'.",
   "valor": "O valor do item em Creditos-S. Ex: 150.",
-  "slots": "O número de slots de equipamento que o item ocupa (1-5). Deixe como 0 para itens não-equipáveis.",
+  "durabilidade": "A durabilidade do item , calculada conforme as regras ou modificada pelos materias usados",
+  "slots": "O número de slots que o item ocupa, caso seja um equipamento ou entidade, o valor vai de 1 a 5, caso contrario, deixe o valor como 1.",
   "stack": "O número máximo de unidades deste item que podem ser acumuladas em um slot de inventário. Deixe como 1 para itens não-acumuláveis.",
   "efeito": "A descrição mecânica e direta do que o item faz. Seja conciso. Ex: 'Restaura 30 de Vida. Pode ser usado como Ação Bônus.'",
+  "bonus": "a descrição do bonus gerado a partir do aprimoramento, ex: '(+2): +10 de dano adicional' siga as regras de bônus de aprimoramento.",
   "aviso": "Um aviso opcional sobre o item. Se não houver, deixe como string vazia ''. Ex: 'O uso desta poção pode causar uma leve perda de sinal em eletrônicos próximos.'"
 }
 
@@ -406,7 +413,12 @@ Siga estas diretrizes estritamente:
     *   Gere um JSON de sucesso.
     *   O `rankItem` DEVE ser idêntico ao `rankAlvo` fornecido.
     *   Crie um item sinérgico baseado nos **Materiais Usados** e na **Classe/Raça** do jogador. O nome e o efeito devem ser coerentes com o **Rank Alvo**.
+    *   O `tipoItem` deve ser coerente com o `tipo` sugerido, mas você pode ajustar se fizer sentido (ex: de "Armadura" para "Acessório").
+    *   O `nomeItem` deve ser criativo e refletir o item criado, incluindo o símbolo do Rank e de aprimoramento caso aplicável.
+    *   O `materiaisReceita` deve listar os materiais exatos usados na criação.
+    *   A `durabilidade` deve ser calculada conforme as regras ou modificada pelos materiais usados.
     *   O `efeito` deve ser puramente mecânico e direto. Remova qualquer texto narrativo sobre o processo de criação. Exemplo: em vez de "Sua perícia brilhou e você criou uma armadura...", use "Concede +5 de Defesa e Resistência a Fogo."
+    *   O `bonus` deve seguir o aprimoramento caso o item já tenha algum, se mais de um dos itens base tiver aprimoramento, utilize o maior valor, ex: "(+2): +20% de eficácia nos valores numéricos base."
     *   Determine os valores para `valor`, `slots` e `stack` com base nas diretrizes de balanceamento do **Rank Alvo**.
 
 2.  **SE Resultado for "FALHA" ou "FALHA_CRITICA":**
@@ -583,10 +595,11 @@ Siga estas diretrizes estritamente:
 end
 
 function aiPrompt.friendPrompt(prompt, personagem)
-    local completePrompt = [[Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG de Realidade Aumentada 'Simulacrum'. Sua função é analisar um 'prompt' de um jogador e gerar uma resposta narrativa e mecânica coerente, balanceada e dentro das regras do sistema
+    local completePrompt =
+    [[Você é 'Friend', uma IA Mestre de Jogo (Game Master) para o RPG de Realidade Aumentada 'Simulacrum'. Sua função é analisar um 'prompt' de um jogador e gerar uma resposta narrativa e mecânica coerente, balanceada e dentro das regras do sistema
     aqui estão as regras do sistema: ]] .. Rules
     if personagem then
-    completePrompt = completePrompt .. [[
+        completePrompt = completePrompt .. [[
     -- [INÍCIO DO CONTEXTO DO JOGADOR] --
     ]] .. rUtils.getTextFromCharacter(personagem) .. [[
     -- [FIM DO CONTEXTO] --]]

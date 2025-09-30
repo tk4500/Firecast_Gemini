@@ -165,10 +165,12 @@ function rrpg.getMesaFromNodeDataBase()
 end;
 
 function rrpg.getMesaFromSheet(sheet)
+---@diagnostic disable-next-line: redundant-parameter
 	return rrpg.getMesaFromNodeDataBase(sheet);
 end;
 
 function rrpg.findMesa(codigoInterno)
+---@diagnostic disable-next-line: missing-parameter
 	local mesas = rrpg.getMesas();
 	
 	for i = 1, #mesas, 1 do

@@ -16,6 +16,9 @@ end;
 
 function lfm_newObjectHandle(className)
 	local obj = gui.fromHandle(_obj_newObject(className));
+	if obj == nil then
+		return nil;
+	end;
 	lfmObjectsStrongRef[obj.handle] = obj;
 	return obj.handle;	
 end;
@@ -52,6 +55,9 @@ function lfm_enumEvents(ctrlOrHandle)
 			eves[qt] = eveRec;
 		end;	
 	end;
+	if obj == nil then
+		obj.eves = nil;
+	end
 	
 	-- Instance Defined Events	
 	local definedEves = obj.eves;
@@ -104,7 +110,9 @@ function lfm_enumProps(ctrlOrHandle)
 			props[qt] = __copyPropTable(propName, prop);
 		end;
 	end;
-	
+	if obj == nil then
+		obj.props = nil;
+	end
 	-- Instance Defined Props		
 	local definedProps = obj.props;
 	
@@ -242,6 +250,7 @@ function lfm_valueToStr(value, tipo, valuesOfTipo)
 	elseif (tipo == "string") or (tipo == "color") or (tipo == 'url') then
 		return value;
 	elseif tipo == "set" then
+---@diagnostic disable-next-line: redundant-parameter
 		return _getStrOfSetTable(value, valuesOfTipo);	
 	elseif (tipo == "bounds") or (tipo == "table") then
 	
@@ -324,6 +333,10 @@ end;
 
 function lfm_getPropAsString(ctrlOrHandle, propName)
 	local obj = lfm_getObject(ctrlOrHandle);
+	if obj == nil then
+		return nil;
+	end;
+
 	local props = obj.props;
 		
 	if props == nil then
@@ -345,6 +358,9 @@ end;
 function lfm_setPropAsString(ctrlOrHandle, propName, vAsStr)
 	local obj = lfm_getObject(ctrlOrHandle);
 	local prop;
+	if obj == nil then
+		prop = nil;
+	end
 	
 	if obj.findPropDef ~= nil then
 		prop = obj:findPropDef(propName);
@@ -368,6 +384,9 @@ end;
 
 function lfm_getPropAsStringToUser(ctrlOrHandle, propName)
 	local obj = lfm_getObject(ctrlOrHandle);
+	if obj == nil then
+		return nil;
+	end;
 	local props = obj.props;
 		
 	if props == nil then
@@ -390,6 +409,9 @@ end;
 function lfm_setParent(ctrlOrHandleFilho, ctrlOrHandlePai)
 	local objFilho = lfm_getObject(ctrlOrHandleFilho);
 	local objPai = lfm_getObject(ctrlOrHandlePai);
+	if (objFilho == nil) or (objPai == nil) then
+		return;
+	end;
 	objFilho:setParent(objPai);
 end;
 

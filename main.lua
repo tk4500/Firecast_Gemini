@@ -5,6 +5,7 @@ require("log.lua")
 require("dialogs.lua");
 require("afk/afk.lua")
 local afkinfo = require("afk/afkInfo.lua")
+require("tts/tts.lua")
 local afk = require("afk/afkChange.lua")
 local getPlayerFromChat = require("firecast/getPlayerFromChat.lua")
 local sendMessage = require("firecast/sendMessage.lua")
@@ -28,6 +29,28 @@ Firecast.Messaging.listen(
         if message.command == "geminiKey" then
             local key = message.parameter
             setGeminiKey(key, message.chat);
+            message.response = { handled = true };
+        end
+        if message.command == "ttskey" then
+            local key = message.parameter
+            TTS_KEY = key;
+            Log.i("SimulacrumCore-TTS", "Chave TTS definida.");
+            message.response = { handled = true };
+        end
+        if message.command == "tts" then
+            TTS_ACTIVE = not TTS_ACTIVE;
+            Log.i("SimulacrumCore-TTS", "TTS ativo: " .. tostring(TTS_ACTIVE));
+            message.response = { handled = true };
+        end
+        if message.command == "ttsLanguage" then
+            local lang = message.parameter
+            if lang and lang ~= "" then
+                TTS_LANGUAGE = lang;
+                Log.i("SimulacrumCore-TTS", "Idioma TTS definido: " .. tostring(TTS_LANGUAGE));
+                message.chat:writeEx(" Idioma TTS definido para: " .. tostring(TTS_LANGUAGE));
+            else
+                message.chat:writeEx(" Idioma TTS inválido. Use: ttsLanguage <código_idioma>");
+            end
             message.response = { handled = true };
         end
         if message.command == "getRules" then
@@ -96,6 +119,19 @@ Firecast.Messaging.listen("ChatMessageEx",
             end
             if (rUtils.startsWith(content, "Friend:")) then
                 friend(message);
+                return;
+            end
+            if (rUtils.startsWith(content, "tts")) then
+                local text = content:sub(4):match("^%s*(.-)%s*$") -- Remove "tts " prefix
+                if not TTS_KEY or TTS_KEY == "" then
+                    sendMessage(" Chave TTS não definida. Use o comando /ttskey <sua_chave_aqui> para definir.", message.chat, "friend");
+                    return;
+                end
+                if not text or text == "" then
+                    sendMessage(" Texto vazio para TTS.", message.chat, "friend");
+                    return;
+                end
+                TtsMessage(text, message.chat.room);
                 return;
             end
             if (rUtils.startsWith(content, "Friend ") or rUtils.startsWith(content, "Friend,")) then
